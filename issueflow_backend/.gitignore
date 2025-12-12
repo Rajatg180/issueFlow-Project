@@ -1,0 +1,45 @@
+# ===== Python =====
+__pycache__/
+*.py[cod]
+*.pyd
+*.so
+*.egg-info/
+dist/
+build/
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# ===== Logs / local files =====
+*.log
+*.sqlite3
+*.db
+.DS_Store
+Thumbs.db
+
+# ===== IDE =====
+.vscode/
+.idea/
+*.iml
+
+# ===== Env / secrets =====
+.env
+.env.*
+!.env.example
+
+# ===== Testing / coverage =====
+.pytest_cache/
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# ===== Alembic runtime =====
+# (versions folder should be committed, do NOT ignore it)
+alembic.ini.bak
+
+# ===== Docker local volumes / compose overrides =====
+docker-compose.override.yml
