@@ -36,6 +36,11 @@ class AuthOnboardingCompleted extends AuthEvent {
   const AuthOnboardingCompleted();
 }
 
+class AuthGoogleLoginRequested extends AuthEvent {
+  const AuthGoogleLoginRequested();
+}
+
+
 /// Logout
 class AuthLogoutRequested extends AuthEvent {
   const AuthLogoutRequested();

@@ -43,3 +43,7 @@ alembic.ini.bak
 
 # ===== Docker local volumes / compose overrides =====
 docker-compose.override.yml
+
+
+secrets/
+*.json

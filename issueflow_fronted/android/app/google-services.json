@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "592669699882",
+    "project_id": "issueflow-app",
+    "storage_bucket": "issueflow-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:592669699882:android:ee543944c54a4ccfa7f853",
+        "android_client_info": {
+          "package_name": "com.example.issueflow_fronted"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "592669699882-98l6rl4c3nmk3tlh46u0p6ne5ju59hrf.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.issueflow_fronted",
+            "certificate_hash": "06a7a49f2dcda650f68bfd5a7417c382e79efbc8"
+          }
+        },
+        {
+          "client_id": "592669699882-m938d7it1d3sd5vl11n3qoaj8g96oe9l.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAt5vpuwqcJ-t3Vo1dlBTEQQ1e6iBV5fNk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "592669699882-m938d7it1d3sd5vl11n3qoaj8g96oe9l.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "592669699882-u0rm7fdm2svsu5htmseld3grqpbefnud.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.issueflowFronted"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

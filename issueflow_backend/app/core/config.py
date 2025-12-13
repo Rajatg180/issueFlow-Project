@@ -1,32 +1,30 @@
 from pydantic_settings import BaseSettings
 
+
 class Settings(BaseSettings):
     """
-    Settings class reads environment variables and exposes them as attributes.
-
-    Why?
-    - Keeps config in one place
-    - Avoids hardcoding secrets in code
-    - Works for local/dev/prod by just changing env vars
+    Reads environment variables from `.env` and exposes them as attributes.
     """
 
     app_name: str = "IssueFlow API"
     env: str = "dev"
 
-    # DB URL will be read from .env (DATABASE_URL)
+    # must exist in .env
     database_url: str
 
-    # JWT config (will be used in auth steps)
+    # JWT config (we’ll use later)
     jwt_secret: str
     jwt_algorithm: str = "HS256"
 
-    # Expiry settings
     access_token_expire_minutes: int = 15
     refresh_token_expire_days: int = 14
 
-    class Config:
-        # Tells Pydantic where to read env vars from
-        env_file = ".env"
+    firebase_service_account_file: str | None = None
 
-# Create a singleton Settings object we can import anywhere
+
+    class Config:
+        env_file = ".env"
+        case_sensitive = False  # allows DATABASE_URL or database_url, etc.
+
+
 settings = Settings()

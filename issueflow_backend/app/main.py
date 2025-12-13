@@ -1,17 +1,32 @@
 from fastapi import FastAPI
-from app.core.config import settings
+from fastapi.middleware.cors import CORSMiddleware
 
-# Create the FastAPI app object
-# title shows in Swagger docs (/docs)
-app = FastAPI(title=settings.app_name)
+from app.db.init_db import init_db
+from app.api.routes.auth import router as auth_router
+
+app = FastAPI(title="IssueFlow API")
+
+# ✅ CORS for Flutter Web dev server (random localhost port)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost",
+        "http://127.0.0.1",
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
+    ],
+    allow_origin_regex=r"^http://localhost:\d+$",
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+@app.on_event("startup")
+def on_startup():
+    init_db()
+
+app.include_router(auth_router)
 
 @app.get("/health")
 def health():
-    """
-    Health check endpoint:
-
-    Why?
-    - Lets you verify server is running
-    - Useful for CI/CD + deployment health checks
-    """
-    return {"status": "ok", "service": settings.app_name}
+    return {"status": "ok"}

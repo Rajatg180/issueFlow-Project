@@ -33,10 +33,14 @@ class _LoginPageState extends State<LoginPage> {
     final theme = Theme.of(context);
 
     return BlocListener<AuthBloc, AuthState>(
-      // Listen for failures and show SnackBar (optional)
       listener: (context, state) {
         if (state is AuthFailure) {
           AppToast.show(context, message: state.message, isError: true);
+        }
+
+        // Optional: show success toast after auth (email/google)
+        if (state is Authenticated) {
+          AppToast.show(context, message: "Signed in successfully");
         }
       },
       child: Scaffold(
@@ -92,19 +96,17 @@ class _LoginPageState extends State<LoginPage> {
                                 ? null
                                 : () {
                                     context.read<AuthBloc>().add(
-                                      AuthLoginRequested(
-                                        email: email.text,
-                                        password: password.text,
-                                      ),
-                                    );
+                                          AuthLoginRequested(
+                                            email: email.text,
+                                            password: password.text,
+                                          ),
+                                        );
                                   },
                             child: isLoading
                                 ? const SizedBox(
                                     height: 18,
                                     width: 18,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                    ),
+                                    child: CircularProgressIndicator(strokeWidth: 2),
                                   )
                                 : const Text('Login'),
                           ),
@@ -112,22 +114,21 @@ class _LoginPageState extends State<LoginPage> {
 
                         const SizedBox(height: 10),
 
+                        // ✅ Google OAuth Button (Firebase)
                         SizedBox(
                           height: 44,
                           child: OutlinedButton(
                             onPressed: isLoading
                                 ? null
                                 : () {
-                                    AppToast.show(
-                                      context,
-                                      message:
-                                          "Google OAuth comes next (Firebase).",
-                                    );
+                                    // Trigger Google login flow in Bloc
+                                    context
+                                        .read<AuthBloc>()
+                                        .add(const AuthGoogleLoginRequested());
                                   },
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                // Real Google icon
                                 SvgPicture.asset(
                                   'assets/icons/google.svg',
                                   height: 18,

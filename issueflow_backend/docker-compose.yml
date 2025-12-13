@@ -9,9 +9,9 @@ services:
       POSTGRES_PASSWORD: issueflow
       POSTGRES_DB: issueflow
 
-    # Expose container's 5432 to your local machine 5432
+    # Expose container's 5433 to your local machine 5432
     ports:
-      - "5432:5432"
+      - "5433:5432"
 
     # Persist DB data even if container restarts
     volumes:

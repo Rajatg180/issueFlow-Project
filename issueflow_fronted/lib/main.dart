@@ -1,13 +1,23 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:issueflow_fronted/features/shell/presentation/bloc/shell_bloc.dart';
+import 'package:issueflow_fronted/firebase_options.dart';
 
-import 'core/theme/app_theme.dart';
+import 'core/di/service_locator.dart';
 import 'core/routing/app_gate.dart';
+import 'core/theme/app_theme.dart';
 import 'features/auth/presentation/bloc/auth_bloc.dart';
 import 'features/auth/presentation/bloc/auth_event.dart';
+import 'features/shell/presentation/bloc/shell_bloc.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+   await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  
+  await setupServiceLocator();
   runApp(const IssueFlowApp());
 }
 
@@ -19,9 +29,9 @@ class IssueFlowApp extends StatelessWidget {
     return MultiBlocProvider(
       providers: [
         BlocProvider<AuthBloc>(
-          create: (_) => AuthBloc()..add(const AuthAppStarted()),
+          create: (_) => sl<AuthBloc>()..add(const AuthAppStarted()),
         ),
-        BlocProvider(create: (_) => ShellBloc() )
+        BlocProvider(create: (_) => ShellBloc()),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
