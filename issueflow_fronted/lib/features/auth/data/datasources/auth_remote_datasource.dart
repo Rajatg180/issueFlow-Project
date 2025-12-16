@@ -21,6 +21,8 @@ class AuthRemoteDataSource {
   }
 
   Future<TokenPairModel> register(String email, String password) async {
+
+    print("@@@@@@@@@@@@@@@@@ ${_u("/auth/register")}");
     final res = await client.post(
       _u("/auth/register"),
       headers: {"Content-Type": "application/json"},
@@ -79,10 +81,15 @@ class AuthRemoteDataSource {
     );
 
     if (res.statusCode != 200) {
-      throw AppException(_extractDetail(res.body) ?? "Not authenticated");
+      throw AppException(
+        _extractDetail(res.body) ?? "Not authenticated",
+        statusCode: res.statusCode,
+      );
     }
-    return UserMeModel.fromJson(jsonDecode(res.body) as Map<String, dynamic>);
+
+    return UserMeModel.fromJson(jsonDecode(res.body));
   }
+
 
   Future<TokenPairModel> firebaseLogin(String firebaseIdToken) async {
     final res = await client.post(

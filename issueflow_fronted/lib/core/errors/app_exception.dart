@@ -1,13 +1,8 @@
-/// Base application exception used across data/domain layers.
-///
-/// Purpose:
-/// - Wrap backend/API errors
-/// - Avoid throwing raw Exception/String
-/// - Keep error handling consistent in Bloc/UI
 class AppException implements Exception {
   final String message;
+  final int? statusCode;
 
-  const AppException(this.message);
+  const AppException(this.message, {this.statusCode});
 
   @override
   String toString() => message;

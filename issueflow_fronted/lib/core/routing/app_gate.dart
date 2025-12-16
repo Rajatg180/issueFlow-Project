@@ -18,9 +18,11 @@ class AppGate extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocBuilder<AuthBloc, AuthState>(
       builder: (context, state) {
-        if (state is AuthInitial) {
-          // While we load persisted flags from SharedPreferences.
-          return const Scaffold(body: Center(child: CircularProgressIndicator()));
+        // ✅ Show a loader while any auth request is running
+        if (state is AuthInitial || state is AuthLoading) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
         }
 
         if (state is Unauthenticated) {
@@ -34,7 +36,7 @@ class AppGate extends StatelessWidget {
           return const ShellPage();
         }
 
-        // Fallback (should never happen)
+        // Fallback
         return const LoginPage();
       },
     );

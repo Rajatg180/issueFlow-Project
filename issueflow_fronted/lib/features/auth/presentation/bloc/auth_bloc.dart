@@ -1,23 +1,22 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:issueflow_fronted/features/auth/domain/usecases/firebase_login_usecase.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:issueflow_fronted/features/onboarding/domain/usecase/complete_onboarding_usecase.dart';
 
 import '../../domain/usecases/get_me_usecase.dart';
 import '../../domain/usecases/login_usecase.dart';
 import '../../domain/usecases/logout_usecase.dart';
 import '../../domain/usecases/register_usecase.dart';
+import '../../domain/usecases/firebase_login_usecase.dart';
+
 import 'auth_event.dart';
 import 'auth_state.dart';
 
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
-  static const _kHasCompletedOnboarding = 'has_completed_onboarding';
-
   final LoginUseCase loginUseCase;
   final RegisterUseCase registerUseCase;
   final GetMeUseCase getMeUseCase;
   final LogoutUseCase logoutUseCase;
   final FirebaseLoginUseCase firebaseLoginUseCase;
-
+  final CompleteOnboardingUseCase completeOnboardingUseCase;
 
   AuthBloc({
     required this.loginUseCase,
@@ -25,6 +24,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     required this.firebaseLoginUseCase,
     required this.getMeUseCase,
     required this.logoutUseCase,
+    required this.completeOnboardingUseCase,
   }) : super(const AuthInitial()) {
     on<AuthAppStarted>(_onAppStarted);
     on<AuthLoginRequested>(_onLogin);
@@ -45,10 +45,19 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     return null;
   }
 
+  Future<void> _emitMe(Emitter<AuthState> emit) async {
+    final me = await getMeUseCase();
+    emit(
+      Authenticated(
+        email: me.email,
+        hasCompletedOnboarding: me.hasCompletedOnboarding,
+      ),
+    );
+  }
+
   Future<void> _onAppStarted(AuthAppStarted event, Emitter<AuthState> emit) async {
     try {
-      final me = await getMeUseCase();
-      emit(Authenticated(email: me.email, hasCompletedOnboarding: me.hasCompletedOnboarding));
+      await _emitMe(emit);
     } catch (_) {
       emit(const Unauthenticated());
     }
@@ -65,11 +74,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     emit(const AuthLoading());
     try {
       await loginUseCase(email: event.email.trim(), password: event.password);
-
-      final prefs = await SharedPreferences.getInstance();
-      final done = prefs.getBool(_kHasCompletedOnboarding) ?? false;
-
-      emit(Authenticated(email: event.email.trim(), hasCompletedOnboarding: done));
+      await _emitMe(emit);
     } catch (e) {
       emit(AuthFailure(e.toString().replaceFirst("Exception: ", "")));
       emit(const Unauthenticated());
@@ -87,11 +92,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     emit(const AuthLoading());
     try {
       await registerUseCase(email: event.email.trim(), password: event.password);
-
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool(_kHasCompletedOnboarding, false);
-
-      emit(Authenticated(email: event.email.trim(), hasCompletedOnboarding: false));
+      await _emitMe(emit); // backend will say onboarding=false by default
     } catch (e) {
       emit(AuthFailure(e.toString().replaceFirst("Exception: ", "")));
       emit(const Unauthenticated());
@@ -104,21 +105,13 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   ) async {
     emit(const AuthLoading());
     try {
-      final tokens = await firebaseLoginUseCase();
-      // After google login success, user is authenticated.
-      // onboarding false by default unless you set it locally.
-      final prefs = await SharedPreferences.getInstance();
-      final done = prefs.getBool(_kHasCompletedOnboarding) ?? false;
-
-      // We don’t have email directly here unless we call getMe
-      final me = await getMeUseCase();
-      emit(Authenticated(email: me.email, hasCompletedOnboarding: done));
+      await firebaseLoginUseCase(); // stores IssueFlow tokens
+      await _emitMe(emit);
     } catch (e) {
       emit(AuthFailure(e.toString().replaceFirst("Exception: ", "")));
       emit(const Unauthenticated());
     }
   }
-
 
   Future<void> _onOnboardingCompleted(
     AuthOnboardingCompleted event,
@@ -127,18 +120,18 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     final current = state;
     if (current is! Authenticated) return;
 
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(_kHasCompletedOnboarding, true);
-
-    emit(Authenticated(email: current.email, hasCompletedOnboarding: true));
+    emit(const AuthLoading());
+    try {
+      await completeOnboardingUseCase();
+      await _emitMe(emit); 
+    } catch (e) {
+      emit(AuthFailure(e.toString().replaceFirst("Exception: ", "")));
+      emit(current);
+    }
   }
 
   Future<void> _onLogout(AuthLogoutRequested event, Emitter<AuthState> emit) async {
     await logoutUseCase();
-
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_kHasCompletedOnboarding);
-
     emit(const Unauthenticated());
   }
 }

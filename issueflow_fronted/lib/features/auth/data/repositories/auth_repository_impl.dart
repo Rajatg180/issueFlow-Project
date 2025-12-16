@@ -44,16 +44,30 @@ class AuthRepositoryImpl implements AuthRepository {
     final refresh = await tokenStorage.readRefreshToken();
 
     if (access == null || refresh == null) {
-      throw const AppException("Not authenticated");
+      throw const AppException("Not authenticated", statusCode: 401);
     }
 
     try {
       return await remote.me(access);
-    } on AppException {
-      // Try refresh once, then retry /me
-      final newAccess = await remote.refreshAccessToken(refresh);
-      await tokenStorage.saveTokens(accessToken: newAccess, refreshToken: refresh);
-      return await remote.me(newAccess);
+    } on AppException catch (e) {
+      if (e.statusCode != 401) rethrow;
+
+      try {
+        final newAccess = await remote.refreshAccessToken(refresh);
+
+        await tokenStorage.saveTokens(
+          accessToken: newAccess,
+          refreshToken: refresh,
+        );
+
+        return await remote.me(newAccess);
+      } catch (_) {
+        await tokenStorage.clear();
+        throw const AppException(
+          "Session expired. Please login again.",
+          statusCode: 401,
+        );
+      }
     }
   }
 
