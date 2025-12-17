@@ -16,7 +16,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final GetMeUseCase getMeUseCase;
   final LogoutUseCase logoutUseCase;
   final FirebaseLoginUseCase firebaseLoginUseCase;
-  final CompleteOnboardingUseCase completeOnboardingUseCase;
+  // final CompleteOnboardingUseCase completeOnboardingUseCase;
 
   AuthBloc({
     required this.loginUseCase,
@@ -24,12 +24,12 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     required this.firebaseLoginUseCase,
     required this.getMeUseCase,
     required this.logoutUseCase,
-    required this.completeOnboardingUseCase,
+    // required this.completeOnboardingUseCase,
   }) : super(const AuthInitial()) {
     on<AuthAppStarted>(_onAppStarted);
     on<AuthLoginRequested>(_onLogin);
     on<AuthRegisterRequested>(_onRegister);
-    on<AuthOnboardingCompleted>(_onOnboardingCompleted);
+    // on<AuthOnboardingCompleted>(_onOnboardingCompleted);
     on<AuthLogoutRequested>(_onLogout);
     on<AuthGoogleLoginRequested>(_onGoogleLogin);
   }
@@ -113,22 +113,22 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     }
   }
 
-  Future<void> _onOnboardingCompleted(
-    AuthOnboardingCompleted event,
-    Emitter<AuthState> emit,
-  ) async {
-    final current = state;
-    if (current is! Authenticated) return;
+  // Future<void> _onOnboardingCompleted(
+  //   AuthOnboardingCompleted event,
+  //   Emitter<AuthState> emit,
+  // ) async {
+  //   final current = state;
+  //   if (current is! Authenticated) return;
 
-    emit(const AuthLoading());
-    try {
-      await completeOnboardingUseCase();
-      await _emitMe(emit); 
-    } catch (e) {
-      emit(AuthFailure(e.toString().replaceFirst("Exception: ", "")));
-      emit(current);
-    }
-  }
+  //   emit(const AuthLoading());
+  //   try {
+  //     await completeOnboardingUseCase();
+  //     await _emitMe(emit); 
+  //   } catch (e) {
+  //     emit(AuthFailure(e.toString().replaceFirst("Exception: ", "")));
+  //     emit(current);
+  //   }
+  // }
 
   Future<void> _onLogout(AuthLogoutRequested event, Emitter<AuthState> emit) async {
     await logoutUseCase();

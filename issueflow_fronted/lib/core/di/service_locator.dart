@@ -1,6 +1,8 @@
 import 'package:get_it/get_it.dart';
 import 'package:http/http.dart' as http;
 import 'package:issueflow_fronted/features/onboarding/domain/usecase/complete_onboarding_usecase.dart';
+import 'package:issueflow_fronted/features/onboarding/domain/usecase/setup_onboarding_usecase.dart';
+import 'package:issueflow_fronted/features/onboarding/presentation/bloc/onboarding_bloc.dart';
 import '../storage/token_storage.dart';
 import '../../features/auth/data/datasources/auth_remote_datasource.dart';
 import '../../features/auth/data/datasources/firebase_auth_service.dart';
@@ -83,6 +85,8 @@ Future<void> setupServiceLocator() async {
   sl.registerLazySingleton<CompleteOnboardingUseCase>(
     () => CompleteOnboardingUseCase(sl<OnboardingRepository>()),
   );
+  sl.registerLazySingleton(() => SetupOnboardingUseCase(sl<OnboardingRepository>()));
+
 
   // ---------------------------
   // BLoCs
@@ -94,7 +98,14 @@ Future<void> setupServiceLocator() async {
       firebaseLoginUseCase: sl<FirebaseLoginUseCase>(),
       getMeUseCase: sl<GetMeUseCase>(),
       logoutUseCase: sl<LogoutUseCase>(),
-      completeOnboardingUseCase: sl<CompleteOnboardingUseCase>(),
+      // completeOnboardingUseCase: sl<CompleteOnboardingUseCase>(),
     ),
   );
+
+  sl.registerFactory<OnboardingBloc>(
+  () => OnboardingBloc(
+    setupOnboardingUseCase: sl<SetupOnboardingUseCase>(),
+    completeOnboardingUseCase: sl<CompleteOnboardingUseCase>(),
+  ),
+);
 }

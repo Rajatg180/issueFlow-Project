@@ -5,5 +5,5 @@ class CompleteOnboardingUseCase {
 
   CompleteOnboardingUseCase(this.repo);
 
-  Future<void> call() => repo.completeOnboarding();
+  Future<void> call() => repo.complete();
 }

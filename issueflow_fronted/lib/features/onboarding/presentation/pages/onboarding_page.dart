@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+import '../../../../core/di/service_locator.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_toast.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_event.dart';
+import '../../domain/entities/onboarding_payload.dart';
+import '../bloc/onboarding_bloc.dart';
+import '../bloc/onboarding_event.dart';
+import '../bloc/onboarding_state.dart';
 
 class OnboardingPage extends StatefulWidget {
   const OnboardingPage({super.key});
@@ -14,22 +19,18 @@ class OnboardingPage extends StatefulWidget {
 }
 
 class _OnboardingPageState extends State<OnboardingPage> {
-  // Step control
   int step = 0;
 
-  // Step 1: project
   final projectName = TextEditingController();
-  final projectKey = TextEditingController(); // like "ISSUE"
+  final projectKey = TextEditingController();
   final projectDesc = TextEditingController();
 
-  // Step 2: invite (comma separated)
   final invites = TextEditingController();
 
-  // Step 3: first issue
   final issueTitle = TextEditingController();
   final issueDesc = TextEditingController();
-  String issueType = 'Task'; // Task/Bug/Feature
-  String issuePriority = 'Medium'; // Low/Medium/High
+  String issueType = 'task'; // backend expects: task/bug/feature
+  String issuePriority = 'medium'; // backend expects: low/medium/high
 
   @override
   void dispose() {
@@ -42,26 +43,57 @@ class _OnboardingPageState extends State<OnboardingPage> {
     super.dispose();
   }
 
-  void _next() {
+  bool _validateStep() {
     if (step == 0) {
       if (projectName.text.trim().isEmpty) {
         AppToast.show(context, message: "Project name is required", isError: true);
-        return;
+        return false;
       }
       if (projectKey.text.trim().length < 2) {
         AppToast.show(context, message: "Project key should be at least 2 letters", isError: true);
-        return;
+        return false;
       }
     }
 
     if (step == 2) {
       if (issueTitle.text.trim().isEmpty) {
         AppToast.show(context, message: "Issue title is required", isError: true);
-        return;
+        return false;
       }
-      // Finish onboarding
-      context.read<AuthBloc>().add(const AuthOnboardingCompleted());
-      AppToast.show(context, message: "Onboarding complete!");
+    }
+
+    return true;
+  }
+
+  List<String> _parseInvites() {
+    // "a@x.com, b@y.com" -> ["a@x.com","b@y.com"]
+    return invites.text
+        .split(',')
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+  }
+
+  OnboardingPayload _buildPayload() {
+    return OnboardingPayload(
+      projectName: projectName.text.trim(),
+      projectKey: projectKey.text.trim().toUpperCase(),
+      projectDescription: projectDesc.text.trim().isEmpty ? null : projectDesc.text.trim(),
+      invites: _parseInvites(),
+      issueTitle: issueTitle.text.trim(),
+      issueDescription: issueDesc.text.trim().isEmpty ? null : issueDesc.text.trim(),
+      issueType: issueType, // task/bug/feature
+      issuePriority: issuePriority, // low/medium/high
+    );
+  }
+
+  void _next(BuildContext context) {
+    if (!_validateStep()) return;
+
+    if (step == 2) {
+      // Last step -> call backend onboarding setup
+      final payload = _buildPayload();
+      context.read<OnboardingBloc>().add(OnboardingSetupRequested(payload));
       return;
     }
 
@@ -105,7 +137,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
     );
   }
 
-  Widget _card(BuildContext context, Widget child) {
+  Widget _card(Widget child) {
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
@@ -125,52 +157,88 @@ class _OnboardingPageState extends State<OnboardingPage> {
   Widget build(BuildContext context) {
     final isWide = MediaQuery.of(context).size.width >= 900;
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Welcome to IssueFlow'),
-        actions: [
-          TextButton(
-            onPressed: () {
-              // Let user skip onboarding (still mark it done)
-              context.read<AuthBloc>().add(const AuthOnboardingCompleted());
-              AppToast.show(context, message: "Skipped onboarding");
-            },
-            child: const Text('Skip'),
-          ),
-          const SizedBox(width: 8),
-        ],
-      ),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 980),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: isWide
-                ? Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(child: _leftInfoPanel(context)),
-                      const SizedBox(width: 16),
-                      Expanded(child: _rightStepPanel(context)),
-                    ],
-                  )
-                : Column(
-                    children: [
-                      _leftInfoPanel(context),
-                      const SizedBox(height: 16),
-                      _rightStepPanel(context),
-                    ],
+    return BlocProvider(
+      create: (_) => sl<OnboardingBloc>(),
+      child: BlocListener<OnboardingBloc, OnboardingState>(
+        listener: (context, state) {
+          if (state is OnboardingFailure) {
+            AppToast.show(context, message: state.message, isError: true);
+          }
+
+          if (state is OnboardingSuccess) {
+            // ✅ Setup done — backend should have updated user.has_completed_onboarding=true
+            AppToast.show(
+              context,
+              message: "Setup complete! Project ${state.result.projectKey} created.",
+            );
+
+            // 🔥 Refresh Auth state by calling /auth/me again
+            // AppGate will automatically navigate to ShellPage
+            context.read<AuthBloc>().add(const AuthAppStarted());
+          }
+
+          if (state is OnboardingSkipSuccess) {
+            AppToast.show(context, message: "Skipped onboarding");
+
+            // Refresh auth state to reflect backend onboarding flag change
+            context.read<AuthBloc>().add(const AuthAppStarted());
+          }
+        },
+        child: BlocBuilder<OnboardingBloc, OnboardingState>(
+          builder: (context, state) {
+            final isLoading = state is OnboardingLoading;
+
+            return Scaffold(
+              appBar: AppBar(
+                title: const Text('Welcome to IssueFlow'),
+                actions: [
+                  TextButton(
+                    onPressed: isLoading
+                        ? null
+                        : () {
+                            // Skip onboarding -> backend marks completed
+                            context.read<OnboardingBloc>().add(const OnboardingSkipRequested());
+                          },
+                    child: const Text('Skip'),
                   ),
-          ),
+                  const SizedBox(width: 8),
+                ],
+              ),
+              body: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 980),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: isWide
+                        ? Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(child: _leftInfoPanel()),
+                              const SizedBox(width: 16),
+                              Expanded(child: _rightStepPanel(context, isLoading)),
+                            ],
+                          )
+                        : Column(
+                            children: [
+                              _leftInfoPanel(),
+                              const SizedBox(height: 16),
+                              _rightStepPanel(context, isLoading),
+                            ],
+                          ),
+                  ),
+                ),
+              ),
+            );
+          },
         ),
       ),
     );
   }
 
-  Widget _leftInfoPanel(BuildContext context) {
+  Widget _leftInfoPanel() {
     final t = Theme.of(context);
+
     return _card(
-      context,
       Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -212,9 +280,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
     );
   }
 
-  Widget _rightStepPanel(BuildContext context) {
+  Widget _rightStepPanel(BuildContext context, bool isLoading) {
     return _card(
-      context,
       Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -223,16 +290,19 @@ class _OnboardingPageState extends State<OnboardingPage> {
             const SizedBox(height: 16),
             TextField(
               controller: projectName,
+              enabled: !isLoading,
               decoration: _dec('Project name', hint: 'e.g., IssueFlow'),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: projectKey,
+              enabled: !isLoading,
               decoration: _dec('Project key', hint: 'e.g., IF'),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: projectDesc,
+              enabled: !isLoading,
               maxLines: 3,
               decoration: _dec('Description (optional)', hint: 'Short description of the project'),
             ),
@@ -242,6 +312,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
             const SizedBox(height: 16),
             TextField(
               controller: invites,
+              enabled: !isLoading,
               decoration: _dec('Emails', hint: 'a@x.com, b@y.com'),
             ),
             const SizedBox(height: 8),
@@ -253,24 +324,23 @@ class _OnboardingPageState extends State<OnboardingPage> {
           if (step == 2) ...[
             _stepHeader(context, 'Create your first issue', 'Start with a small task to test the workflow.'),
             const SizedBox(height: 16),
-
             TextField(
               controller: issueTitle,
+              enabled: !isLoading,
               decoration: _dec('Title', hint: 'e.g., Setup CI pipeline'),
             ),
             const SizedBox(height: 12),
-
             Row(
               children: [
                 Expanded(
                   child: DropdownButtonFormField<String>(
                     value: issueType,
                     items: const [
-                      DropdownMenuItem(value: 'Task', child: Text('Task')),
-                      DropdownMenuItem(value: 'Bug', child: Text('Bug')),
-                      DropdownMenuItem(value: 'Feature', child: Text('Feature')),
+                      DropdownMenuItem(value: 'task', child: Text('Task')),
+                      DropdownMenuItem(value: 'bug', child: Text('Bug')),
+                      DropdownMenuItem(value: 'feature', child: Text('Feature')),
                     ],
-                    onChanged: (v) => setState(() => issueType = v ?? 'Task'),
+                    onChanged: isLoading ? null : (v) => setState(() => issueType = v ?? 'task'),
                     decoration: _dec('Type'),
                   ),
                 ),
@@ -279,39 +349,43 @@ class _OnboardingPageState extends State<OnboardingPage> {
                   child: DropdownButtonFormField<String>(
                     value: issuePriority,
                     items: const [
-                      DropdownMenuItem(value: 'Low', child: Text('Low')),
-                      DropdownMenuItem(value: 'Medium', child: Text('Medium')),
-                      DropdownMenuItem(value: 'High', child: Text('High')),
+                      DropdownMenuItem(value: 'low', child: Text('Low')),
+                      DropdownMenuItem(value: 'medium', child: Text('Medium')),
+                      DropdownMenuItem(value: 'high', child: Text('High')),
                     ],
-                    onChanged: (v) => setState(() => issuePriority = v ?? 'Medium'),
+                    onChanged: isLoading ? null : (v) => setState(() => issuePriority = v ?? 'medium'),
                     decoration: _dec('Priority'),
                   ),
                 ),
               ],
             ),
-
             const SizedBox(height: 12),
-
             TextField(
               controller: issueDesc,
+              enabled: !isLoading,
               maxLines: 3,
               decoration: _dec('Description (optional)'),
             ),
           ],
           const SizedBox(height: 18),
-
           Row(
             children: [
               if (step > 0)
                 OutlinedButton(
-                  onPressed: _back,
+                  onPressed: isLoading ? null : _back,
                   child: const Text('Back'),
                 ),
               if (step > 0) const SizedBox(width: 10),
               Expanded(
                 child: ElevatedButton(
-                  onPressed: _next,
-                  child: Text(step == 2 ? 'Finish setup' : 'Continue'),
+                  onPressed: isLoading ? null : () => _next(context),
+                  child: isLoading
+                      ? const SizedBox(
+                          height: 18,
+                          width: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Text(step == 2 ? 'Finish setup' : 'Continue'),
                 ),
               ),
             ],
