@@ -1,8 +1,9 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:issueflow_fronted/features/onboarding/presentation/bloc/onboarding_bloc.dart';
 import 'package:issueflow_fronted/firebase_options.dart';
-
+import 'features/projects/presentation/bloc/projects_bloc.dart';
 import 'core/di/service_locator.dart';
 import 'core/routing/app_gate.dart';
 import 'core/theme/app_theme.dart';
@@ -32,6 +33,8 @@ class IssueFlowApp extends StatelessWidget {
           create: (_) => sl<AuthBloc>()..add(const AuthAppStarted()),
         ),
         BlocProvider(create: (_) => ShellBloc()),
+        BlocProvider(create: (_)=> sl<OnboardingBloc>()),
+        BlocProvider(create: (_) => sl<ProjectsBloc>()),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,

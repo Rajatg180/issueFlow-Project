@@ -1,5 +1,4 @@
 import 'package:issueflow_fronted/features/onboarding/domain/entities/onboarding_payload.dart';
-
 import 'package:issueflow_fronted/features/onboarding/domain/entities/onboarding_result.dart';
 
 import '../../domain/repositories/onboarding_repository.dart';
@@ -10,11 +9,8 @@ class OnboardingRepositoryImpl implements OnboardingRepository {
 
   OnboardingRepositoryImpl(this.remote);
 
-   @override
+  @override
   Future<OnboardingResult> setup(OnboardingPayload payload) async {
-    // NOTE:
-    // For onboarding endpoints we assume caller already has valid access token.
-    // If you want auto-refresh here too, we can reuse the same refresh logic pattern.
     return remote.setup(
       projectName: payload.projectName,
       projectKey: payload.projectKey,
@@ -24,10 +20,12 @@ class OnboardingRepositoryImpl implements OnboardingRepository {
       issueDescription: payload.issueDescription,
       issueType: payload.issueType,
       issuePriority: payload.issuePriority,
+
+      /// ✅ NEW
+      dueDate: payload.dueDate,
     );
   }
 
   @override
   Future<void> complete() => remote.completeOnboarding();
-
 }

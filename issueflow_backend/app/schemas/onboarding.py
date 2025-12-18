@@ -1,4 +1,5 @@
 from __future__ import annotations
+from datetime import date
 from pydantic import BaseModel
 from typing import List, Optional
 
@@ -25,3 +26,4 @@ class OnboardingSetupResponse(BaseModel):
     first_issue_key: str
 
     has_completed_onboarding: bool
+    due_date: date | None = None

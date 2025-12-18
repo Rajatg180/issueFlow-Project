@@ -1,14 +1,12 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, date
 from enum import Enum
 from typing import Optional
 from uuid import UUID, uuid4
 
 from sqlmodel import SQLModel, Field
 
-class IssueType(str,Enum):
-    task = "task"
 
 class IssueType(str, Enum):
     task = "task"
@@ -28,16 +26,15 @@ class IssueStatus(str, Enum):
     done = "done"
 
 
-class Issue(SQLModel,table=True):
+class Issue(SQLModel, table=True):
     """
     - key: "IF-1"
     - project_id: belongs to a project
     """
-    id: UUID = Field(default_factory=uuid4, primary_key=True, index=True)
 
+    id: UUID = Field(default_factory=uuid4, primary_key=True, index=True)
     project_id: UUID = Field(index=True, nullable=False)
 
-    # Human readable Issue key like "IF-12"
     key: str = Field(index=True, unique=True, nullable=False, max_length=32)
 
     title: str = Field(nullable=False, max_length=200)
@@ -47,12 +44,10 @@ class Issue(SQLModel,table=True):
     priority: IssuePriority = Field(nullable=False, default=IssuePriority.medium)
     status: IssueStatus = Field(nullable=False, default=IssueStatus.todo)
 
-    # Jira-style: reporter is the creator
-    reporter_id: UUID = Field(index=True, nullable=False)
+    due_date: Optional[date] = Field(default=None, index=True)
 
-    # optional assignment
+    reporter_id: UUID = Field(index=True, nullable=False)
     assignee_id: Optional[UUID] = Field(default=None, index=True)
 
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
-    

@@ -8,6 +8,7 @@ import '../../../../core/storage/token_storage.dart';
 
 abstract class OnboardingRemoteDataSource {
   Future<void> completeOnboarding();
+
   Future<OnboardingResultModel> setup({
     required String projectName,
     required String projectKey,
@@ -17,6 +18,9 @@ abstract class OnboardingRemoteDataSource {
     String? issueDescription,
     required String issueType, // task/bug/feature
     required String issuePriority, // low/medium/high
+
+    /// Optional due date.
+    DateTime? dueDate,
   });
 }
 
@@ -47,33 +51,47 @@ class OnboardingRemoteDataSourceImpl implements OnboardingRemoteDataSource {
     required List<String> invites,
     required String issueTitle,
     String? issueDescription,
-    required String issueType, // task/bug/feature
-    required String issuePriority, // low/medium/high
+    required String issueType,
+    required String issuePriority,
+    DateTime? dueDate,
   }) async {
     final access = await tokenStorage.readAccessToken();
     if (access == null) {
       throw const AppException("Not authenticated", statusCode: 401);
     }
+
+    // Build first_issue map.
+    // IMPORTANT:
+    // We only include due_date if user selected it.
+    // This prevents backend 422 errors if backend schema doesn't have due_date yet.
+    final firstIssue = <String, dynamic>{
+      "title": issueTitle,
+      "description": issueDescription,
+      "type": issueType,
+      "priority": issuePriority,
+    };
+
+    if (dueDate != null) {
+      firstIssue["due_date"] = dueDate.toIso8601String().split('T').first; 
+    }
+
+    final body = {
+      "project": {
+        "name": projectName,
+        "key": projectKey,
+        "description": projectDescription,
+      },
+      "invites": invites,
+      "first_issue": firstIssue,
+    };
+
     final res = await client.post(
       _u("/onboarding/setup"),
       headers: {
         "Content-Type": "application/json",
         "Authorization": "Bearer $access",
       },
-      body: jsonEncode({
-        "project": {
-          "name": projectName,
-          "key": projectKey,
-          "description": projectDescription,
-        },
-        "invites": invites,
-        "first_issue": {
-          "title": issueTitle,
-          "description": issueDescription,
-          "type": issueType,
-          "priority": issuePriority,
-        },
-      }),
+      body: jsonEncode(body),
     );
 
     if (res.statusCode != 200) {
@@ -90,7 +108,7 @@ class OnboardingRemoteDataSourceImpl implements OnboardingRemoteDataSource {
   Future<void> completeOnboarding() async {
     final access = await tokenStorage.readAccessToken();
     if (access == null) {
-      throw Exception("Not authenticated");
+      throw const AppException("Not authenticated", statusCode: 401);
     }
 
     final res = await client.post(
@@ -99,7 +117,7 @@ class OnboardingRemoteDataSourceImpl implements OnboardingRemoteDataSource {
         "Content-Type": "application/json",
         "Authorization": "Bearer $access",
       },
-      body: jsonEncode({}), // empty body, just to be explicit
+      body: jsonEncode({}),
     );
 
     if (res.statusCode != 200) {

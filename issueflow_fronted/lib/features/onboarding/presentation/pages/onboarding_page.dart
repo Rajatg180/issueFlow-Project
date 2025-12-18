@@ -29,8 +29,12 @@ class _OnboardingPageState extends State<OnboardingPage> {
 
   final issueTitle = TextEditingController();
   final issueDesc = TextEditingController();
+
   String issueType = 'task'; // backend expects: task/bug/feature
   String issuePriority = 'medium'; // backend expects: low/medium/high
+
+  /// Optional due date (null by default)
+  DateTime? dueDate;
 
   @override
   void dispose() {
@@ -43,6 +47,9 @@ class _OnboardingPageState extends State<OnboardingPage> {
     super.dispose();
   }
 
+  // ---------------------------
+  // Validation
+  // ---------------------------
   bool _validateStep() {
     if (step == 0) {
       if (projectName.text.trim().isEmpty) {
@@ -65,6 +72,9 @@ class _OnboardingPageState extends State<OnboardingPage> {
     return true;
   }
 
+  // ---------------------------
+  // Helpers
+  // ---------------------------
   List<String> _parseInvites() {
     // "a@x.com, b@y.com" -> ["a@x.com","b@y.com"]
     return invites.text
@@ -72,6 +82,39 @@ class _OnboardingPageState extends State<OnboardingPage> {
         .map((e) => e.trim())
         .where((e) => e.isNotEmpty)
         .toList();
+  }
+
+  String _fmtDate(DateTime d) {
+    // Simple yyyy-mm-dd formatting (no extra intl dependency)
+    final mm = d.month.toString().padLeft(2, '0');
+    final dd = d.day.toString().padLeft(2, '0');
+    return "${d.year}-$mm-$dd";
+  }
+
+  Future<void> _pickDueDate() async {
+    final now = DateTime.now();
+
+    // If already selected, use it as initial
+    final initial = dueDate ?? now;
+
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: DateTime(now.year - 1),
+      lastDate: DateTime(now.year + 10),
+      helpText: "Select due date",
+    );
+
+    if (picked == null) return;
+
+    setState(() {
+      // Normalize time to midnight (optional, but clean)
+      dueDate = DateTime(picked.year, picked.month, picked.day);
+    });
+  }
+
+  void _clearDueDate() {
+    setState(() => dueDate = null);
   }
 
   OnboardingPayload _buildPayload() {
@@ -82,8 +125,9 @@ class _OnboardingPageState extends State<OnboardingPage> {
       invites: _parseInvites(),
       issueTitle: issueTitle.text.trim(),
       issueDescription: issueDesc.text.trim().isEmpty ? null : issueDesc.text.trim(),
-      issueType: issueType, // task/bug/feature
-      issuePriority: issuePriority, // low/medium/high
+      issueType: issueType,
+      issuePriority: issuePriority,
+      dueDate: dueDate,
     );
   }
 
@@ -166,21 +210,17 @@ class _OnboardingPageState extends State<OnboardingPage> {
           }
 
           if (state is OnboardingSuccess) {
-            // ✅ Setup done — backend should have updated user.has_completed_onboarding=true
             AppToast.show(
               context,
               message: "Setup complete! Project ${state.result.projectKey} created.",
             );
 
-            // 🔥 Refresh Auth state by calling /auth/me again
-            // AppGate will automatically navigate to ShellPage
+            // Refresh auth (/auth/me) so AppGate can route to Shell
             context.read<AuthBloc>().add(const AuthAppStarted());
           }
 
           if (state is OnboardingSkipSuccess) {
             AppToast.show(context, message: "Skipped onboarding");
-
-            // Refresh auth state to reflect backend onboarding flag change
             context.read<AuthBloc>().add(const AuthAppStarted());
           }
         },
@@ -196,7 +236,6 @@ class _OnboardingPageState extends State<OnboardingPage> {
                     onPressed: isLoading
                         ? null
                         : () {
-                            // Skip onboarding -> backend marks completed
                             context.read<OnboardingBloc>().add(const OnboardingSkipRequested());
                           },
                     child: const Text('Skip'),
@@ -330,6 +369,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
               decoration: _dec('Title', hint: 'e.g., Setup CI pipeline'),
             ),
             const SizedBox(height: 12),
+
             Row(
               children: [
                 Expanded(
@@ -359,7 +399,14 @@ class _OnboardingPageState extends State<OnboardingPage> {
                 ),
               ],
             ),
+
             const SizedBox(height: 12),
+
+            // ✅ Due date UI (optional)
+            _dueDateRow(isLoading),
+
+            const SizedBox(height: 12),
+
             TextField(
               controller: issueDesc,
               enabled: !isLoading,
@@ -367,6 +414,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
               decoration: _dec('Description (optional)'),
             ),
           ],
+
           const SizedBox(height: 18),
           Row(
             children: [
@@ -390,6 +438,50 @@ class _OnboardingPageState extends State<OnboardingPage> {
               ),
             ],
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _dueDateRow(bool isLoading) {
+    final label = (dueDate == null) ? "None" : _fmtDate(dueDate!);
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.surface2,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.event, size: 18, color: AppColors.textSecondary),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  "Due date",
+                  style: TextStyle(color: AppColors.textPrimary, fontSize: 13, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  label,
+                  style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+          TextButton(
+            onPressed: isLoading ? null : _pickDueDate,
+            child: const Text("Pick"),
+          ),
+          if (dueDate != null)
+            TextButton(
+              onPressed: isLoading ? null : _clearDueDate,
+              child: const Text("Clear"),
+            ),
         ],
       ),
     );

@@ -19,6 +19,14 @@ import '../../features/onboarding/data/datasources/onboarding_remote_datasource.
 import '../../features/onboarding/data/repositories/onboarding_repository_impl.dart';
 import '../../features/onboarding/domain/repositories/onboarding_repository.dart';
 
+import 'package:issueflow_fronted/features/projects/data/datasources/projects_remote_datasource.dart';
+import 'package:issueflow_fronted/features/projects/data/repositories/projects_repository_impl.dart';
+import 'package:issueflow_fronted/features/projects/domain/repositories/projects_repository.dart';
+import 'package:issueflow_fronted/features/projects/domain/usecases/create_project_usecase.dart';
+import 'package:issueflow_fronted/features/projects/domain/usecases/list_projects_usecase.dart';
+import 'package:issueflow_fronted/features/projects/presentation/bloc/projects_bloc.dart';
+
+
 final sl = GetIt.instance;
 
 Future<void> setupServiceLocator() async {
@@ -108,4 +116,39 @@ Future<void> setupServiceLocator() async {
     completeOnboardingUseCase: sl<CompleteOnboardingUseCase>(),
   ),
 );
+
+
+  // ---------------------------
+  // PROJECTS - DataSource
+  // ---------------------------
+  sl.registerLazySingleton<ProjectsRemoteDataSource>(
+    () => ProjectsRemoteDataSource(
+      client: sl<http.Client>(),
+      tokenStorage: sl<TokenStorage>(),
+    ),
+  );
+
+  // ---------------------------
+  // PROJECTS - Repository
+  // ---------------------------
+  sl.registerLazySingleton<ProjectsRepository>(
+    () => ProjectsRepositoryImpl(remote: sl<ProjectsRemoteDataSource>()),
+  );
+
+  // ---------------------------
+  // PROJECTS - UseCases
+  // ---------------------------
+  sl.registerLazySingleton(() => ListProjectsUseCase(sl<ProjectsRepository>()));
+  sl.registerLazySingleton(() => CreateProjectUseCase(sl<ProjectsRepository>()));
+
+  // ---------------------------
+  // PROJECTS - Bloc
+  // ---------------------------
+  sl.registerFactory(
+    () => ProjectsBloc(
+      listProjectsUseCase: sl<ListProjectsUseCase>(),
+      createProjectUseCase: sl<CreateProjectUseCase>(),
+    ),
+  );
+
 }

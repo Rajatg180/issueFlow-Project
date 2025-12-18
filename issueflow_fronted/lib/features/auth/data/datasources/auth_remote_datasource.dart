@@ -21,8 +21,6 @@ class AuthRemoteDataSource {
   }
 
   Future<TokenPairModel> register(String email, String password) async {
-
-    print("@@@@@@@@@@@@@@@@@ ${_u("/auth/register")}");
     final res = await client.post(
       _u("/auth/register"),
       headers: {"Content-Type": "application/json"},

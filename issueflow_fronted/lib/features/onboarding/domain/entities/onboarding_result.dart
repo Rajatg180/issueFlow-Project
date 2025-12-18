@@ -5,11 +5,15 @@ class OnboardingResult {
   final String firstIssueKey;
   final bool hasCompletedOnboarding;
 
+  /// ✅ NEW (optional)
+  final DateTime? dueDate;
+
   const OnboardingResult({
     required this.projectId,
     required this.projectKey,
     required this.firstIssueId,
     required this.firstIssueKey,
     required this.hasCompletedOnboarding,
+    this.dueDate,
   });
 }

@@ -1,5 +1,5 @@
 from __future__ import annotations
-from datetime import datetime
+from datetime import date, datetime
 from sqlmodel import Session, select
 
 from app.models.issue import Issue, IssuePriority, IssueType
@@ -25,6 +25,7 @@ def create_issue(
     description: str | None,
     type_: IssueType,
     priority: IssuePriority,
+    due_date : date | None
 ) -> Issue:
     """
     Create an issue inside a project and generate stable issue key (KEY-1, KEY-2...).
@@ -52,6 +53,7 @@ def create_issue(
         description=description,
         type=type_,
         priority=priority,
+        due_date=due_date,
         reporter_id=reporter.id,
         created_at=datetime.utcnow(),
         updated_at=datetime.utcnow(),

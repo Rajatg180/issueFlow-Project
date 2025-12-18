@@ -20,7 +20,6 @@ def setup(
     user: User = Depends(get_current_user),
 ):
     """
-    One Jira-like endpoint that matches your 3-step UI:
     1) Create Project
     2) Invite members (we store later; v1 = ignore)
     3) Create first Issue
@@ -45,6 +44,7 @@ def setup(
             description=payload.first_issue.description,
             type_=payload.first_issue.type,
             priority=payload.first_issue.priority,
+            due_date=payload.first_issue.due_date,
         )
 
         # Mark onboarding done on the USER (your requirement)
@@ -60,6 +60,7 @@ def setup(
             first_issue_id=str(first_issue.id),
             first_issue_key=first_issue.key,
             has_completed_onboarding=user.has_completed_onboarding,
+            due_date=first_issue.due_date,  
         )
 
     except ValueError as e:

@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session
 
@@ -27,6 +28,7 @@ def create_in_project(
             description=payload.description,
             type_=payload.type,
             priority=payload.priority,
+            due_date=payload.due_date, 
         )
 
         return IssueResponse(
@@ -37,6 +39,7 @@ def create_in_project(
             type=issue.type,
             priority=issue.priority,
             status=issue.status,
+            due_date=issue.due_date,  
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -59,6 +62,7 @@ def list_in_project(
                 type=i.type,
                 priority=i.priority,
                 status=i.status,
+                due_date=i.due_date,
             )
             for i in items
         ]
