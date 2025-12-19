@@ -1,5 +1,4 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:issueflow_fronted/features/onboarding/domain/usecase/complete_onboarding_usecase.dart';
 
 import '../../domain/usecases/get_me_usecase.dart';
 import '../../domain/usecases/login_usecase.dart';
@@ -16,7 +15,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final GetMeUseCase getMeUseCase;
   final LogoutUseCase logoutUseCase;
   final FirebaseLoginUseCase firebaseLoginUseCase;
-  // final CompleteOnboardingUseCase completeOnboardingUseCase;
 
   AuthBloc({
     required this.loginUseCase,
@@ -24,12 +22,10 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     required this.firebaseLoginUseCase,
     required this.getMeUseCase,
     required this.logoutUseCase,
-    // required this.completeOnboardingUseCase,
   }) : super(const AuthInitial()) {
     on<AuthAppStarted>(_onAppStarted);
     on<AuthLoginRequested>(_onLogin);
     on<AuthRegisterRequested>(_onRegister);
-    // on<AuthOnboardingCompleted>(_onOnboardingCompleted);
     on<AuthLogoutRequested>(_onLogout);
     on<AuthGoogleLoginRequested>(_onGoogleLogin);
   }
@@ -41,7 +37,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
   String? _validateCredentials({required String email, required String password}) {
     if (!_isValidEmail(email)) return "Please enter a valid email address.";
-    if (password.length < 6) return "Password must be at least 8 characters.";
+    if (password.length < 6) return "Password must be at least 6 characters.";
     return null;
   }
 
@@ -66,8 +62,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   Future<void> _onLogin(AuthLoginRequested event, Emitter<AuthState> emit) async {
     final err = _validateCredentials(email: event.email, password: event.password);
     if (err != null) {
-      emit(AuthFailure(err));
-      emit(const Unauthenticated());
+      emit(AuthFailure(err)); // ✅ DO NOT emit Unauthenticated after this
       return;
     }
 
@@ -76,26 +71,23 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       await loginUseCase(email: event.email.trim(), password: event.password);
       await _emitMe(emit);
     } catch (e) {
-      emit(AuthFailure(e.toString().replaceFirst("Exception: ", "")));
-      emit(const Unauthenticated());
+      emit(AuthFailure(e.toString().replaceFirst("Exception: ", ""))); // ✅ keep failure
     }
   }
 
   Future<void> _onRegister(AuthRegisterRequested event, Emitter<AuthState> emit) async {
     final err = _validateCredentials(email: event.email, password: event.password);
     if (err != null) {
-      emit(AuthFailure(err));
-      emit(const Unauthenticated());
+      emit(AuthFailure(err)); // ✅ DO NOT emit Unauthenticated after this
       return;
     }
 
     emit(const AuthLoading());
     try {
       await registerUseCase(email: event.email.trim(), password: event.password);
-      await _emitMe(emit); // backend will say onboarding=false by default
+      await _emitMe(emit);
     } catch (e) {
-      emit(AuthFailure(e.toString().replaceFirst("Exception: ", "")));
-      emit(const Unauthenticated());
+      emit(AuthFailure(e.toString().replaceFirst("Exception: ", ""))); // ✅ keep failure
     }
   }
 
@@ -105,30 +97,12 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   ) async {
     emit(const AuthLoading());
     try {
-      await firebaseLoginUseCase(); // stores IssueFlow tokens
+      await firebaseLoginUseCase();
       await _emitMe(emit);
     } catch (e) {
-      emit(AuthFailure(e.toString().replaceFirst("Exception: ", "")));
-      emit(const Unauthenticated());
+      emit(AuthFailure(e.toString().replaceFirst("Exception: ", ""))); // ✅ keep failure
     }
   }
-
-  // Future<void> _onOnboardingCompleted(
-  //   AuthOnboardingCompleted event,
-  //   Emitter<AuthState> emit,
-  // ) async {
-  //   final current = state;
-  //   if (current is! Authenticated) return;
-
-  //   emit(const AuthLoading());
-  //   try {
-  //     await completeOnboardingUseCase();
-  //     await _emitMe(emit); 
-  //   } catch (e) {
-  //     emit(AuthFailure(e.toString().replaceFirst("Exception: ", "")));
-  //     emit(current);
-  //   }
-  // }
 
   Future<void> _onLogout(AuthLogoutRequested event, Emitter<AuthState> emit) async {
     await logoutUseCase();

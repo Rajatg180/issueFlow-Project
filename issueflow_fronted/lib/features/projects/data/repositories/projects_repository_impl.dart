@@ -17,4 +17,20 @@ class ProjectsRepositoryImpl implements ProjectsRepository {
   }) {
     return remote.createProject(name: name, key: key, description: description);
   }
+
+  @override
+  Future<void> deleteProject(String projectId) => remote.deleteProject(projectId);
+
+  @override
+  Future<ProjectEntity> updatePreference(
+    String projectId, {
+    bool? isFavorite,
+    bool? isPinned,
+  }) {
+    return remote.updatePreference(
+      projectId,
+      isFavorite: isFavorite,
+      isPinned: isPinned,
+    );
+  }
 }

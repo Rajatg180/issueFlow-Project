@@ -39,7 +39,6 @@ class AuthRemoteDataSource {
       headers: {"Content-Type": "application/json"},
       body: jsonEncode({"email": email, "password": password}),
     );
-
     if (res.statusCode != 200) {
       throw AppException(_extractDetail(res.body) ?? "Invalid email or password");
     }

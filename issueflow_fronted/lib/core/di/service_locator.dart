@@ -3,6 +3,8 @@ import 'package:http/http.dart' as http;
 import 'package:issueflow_fronted/features/onboarding/domain/usecase/complete_onboarding_usecase.dart';
 import 'package:issueflow_fronted/features/onboarding/domain/usecase/setup_onboarding_usecase.dart';
 import 'package:issueflow_fronted/features/onboarding/presentation/bloc/onboarding_bloc.dart';
+import 'package:issueflow_fronted/features/projects/domain/usecases/delete_project_usecase.dart';
+import 'package:issueflow_fronted/features/projects/domain/usecases/update_project_preference_usecase.dart';
 import '../storage/token_storage.dart';
 import '../../features/auth/data/datasources/auth_remote_datasource.dart';
 import '../../features/auth/data/datasources/firebase_auth_service.dart';
@@ -140,7 +142,8 @@ Future<void> setupServiceLocator() async {
   // ---------------------------
   sl.registerLazySingleton(() => ListProjectsUseCase(sl<ProjectsRepository>()));
   sl.registerLazySingleton(() => CreateProjectUseCase(sl<ProjectsRepository>()));
-
+  sl.registerLazySingleton(() => DeleteProjectUseCase(sl<ProjectsRepository>()));
+  sl.registerLazySingleton(() => UpdateProjectPreferenceUseCase(sl<ProjectsRepository>()));
   // ---------------------------
   // PROJECTS - Bloc
   // ---------------------------
@@ -148,6 +151,8 @@ Future<void> setupServiceLocator() async {
     () => ProjectsBloc(
       listProjectsUseCase: sl<ListProjectsUseCase>(),
       createProjectUseCase: sl<CreateProjectUseCase>(),
+      deleteProjectUseCase: sl<DeleteProjectUseCase>(),
+      updateProjectPreferenceUseCase: sl<UpdateProjectPreferenceUseCase>()
     ),
   );
 

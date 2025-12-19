@@ -1,11 +1,11 @@
 from __future__ import annotations
-from pydantic import BaseModel, Field
+from datetime import datetime
+from pydantic import BaseModel
 
 
 class ProjectCreateRequest(BaseModel):
-    # UI sends these in onboarding 
-    name: str = Field(min_length=1, max_length=120)
-    key: str = Field(min_length=2, max_length=10)  # e.g. IF
+    name: str
+    key: str
     description: str | None = None
 
 
@@ -14,3 +14,13 @@ class ProjectResponse(BaseModel):
     name: str
     key: str
     description: str | None = None
+    created_at: datetime | None = None
+
+    # ✅ new fields
+    is_favorite: bool = False
+    is_pinned: bool = False
+
+
+class ProjectPreferenceUpdateRequest(BaseModel):
+    is_favorite: bool | None = None
+    is_pinned: bool | None = None

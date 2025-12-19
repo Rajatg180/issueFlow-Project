@@ -1,5 +1,9 @@
-abstract class ProjectsEvent {
+import 'package:equatable/equatable.dart';
+
+sealed class ProjectsEvent extends Equatable {
   const ProjectsEvent();
+  @override
+  List<Object?> get props => [];
 }
 
 class ProjectsFetchRequested extends ProjectsEvent {
@@ -7,13 +11,43 @@ class ProjectsFetchRequested extends ProjectsEvent {
 }
 
 class ProjectsCreateRequested extends ProjectsEvent {
+  final String name;
+  final String key;
+  final String? description;
+
   const ProjectsCreateRequested({
     required this.name,
     required this.key,
     this.description,
   });
 
-  final String name;
-  final String key;
-  final String? description;
+  @override
+  List<Object?> get props => [name, key, description];
+}
+
+class ProjectsDeleteRequested extends ProjectsEvent {
+  final String projectId;
+  const ProjectsDeleteRequested(this.projectId);
+
+  @override
+  List<Object?> get props => [projectId];
+}
+
+// ✅ NEW
+class ProjectsFavoriteToggled extends ProjectsEvent {
+  final String projectId;
+  final bool value;
+  const ProjectsFavoriteToggled({required this.projectId, required this.value});
+
+  @override
+  List<Object?> get props => [projectId, value];
+}
+
+class ProjectsPinnedToggled extends ProjectsEvent {
+  final String projectId;
+  final bool value;
+  const ProjectsPinnedToggled({required this.projectId, required this.value});
+
+  @override
+  List<Object?> get props => [projectId, value];
 }

@@ -20,6 +20,18 @@ class TokenStorage {
   Future<String?> readAccessToken() => _storage.read(key: _kAccess);
   Future<String?> readRefreshToken() => _storage.read(key: _kRefresh);
 
+  Future<void> saveAccessToken(String accessToken) async {
+    await _storage.write(key: _kAccess, value: accessToken);
+  }
+
+  Future<String> requireRefreshToken() async {
+    final rt = await readRefreshToken();
+    if (rt == null || rt.isEmpty) {
+      throw Exception("Missing refresh token");
+    }
+    return rt;
+  }
+
   Future<void> clear() async {
     await _storage.delete(key: _kAccess);
     await _storage.delete(key: _kRefresh);

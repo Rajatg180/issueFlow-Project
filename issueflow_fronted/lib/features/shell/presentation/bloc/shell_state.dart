@@ -1,18 +1,30 @@
 import 'package:equatable/equatable.dart';
 import '../../nav_items.dart';
 
-/// State holds the current selected tab.
-/// Equatable helps Bloc compare states efficiently (prevents unnecessary rebuilds).
 class ShellState extends Equatable {
-  final ShellTab selected ;
+  final ShellTab selected;
 
-  const ShellState({required this.selected});
+  /// Optional: if user clicks a project in sidebar, we keep it here
+  final String? selectedProjectId;
 
-  /// copyWith is a standard pattern:
-  /// create a new state changing only some fields.
-  ShellState copyWith({ShellTab? selected}) =>
-      ShellState(selected: selected ?? this.selected);
+  const ShellState({
+    required this.selected,
+    this.selectedProjectId,
+  });
+
+  ShellState copyWith({
+    ShellTab? selected,
+    String? selectedProjectId,
+    bool clearSelectedProjectId = false,
+  }) {
+    return ShellState(
+      selected: selected ?? this.selected,
+      selectedProjectId: clearSelectedProjectId
+          ? null
+          : (selectedProjectId ?? this.selectedProjectId),
+    );
+  }
 
   @override
-  List<Object?> get props => [selected];
+  List<Object?> get props => [selected, selectedProjectId];
 }

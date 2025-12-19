@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/responsive/responsive.dart';
 import '../../../dashboard/presentation/pages/dashboard_page.dart';
@@ -8,12 +9,11 @@ import '../../../projects/presentation/pages/projects_page.dart';
 import '../../../settings/presentation/pages/settings_page.dart';
 import '../../nav_items.dart';
 import '../bloc/shell_bloc.dart';
+import '../bloc/shell_event.dart';
 import '../bloc/shell_state.dart';
 import '../widgets/side_nav.dart';
 import '../widgets/top_bar.dart';
 
-/// App shell is the base frame (sidebar + topbar + content area).
-/// We keep it in its own feature so it stays clean and reusable.
 class ShellPage extends StatefulWidget {
   const ShellPage({super.key});
 
@@ -22,18 +22,41 @@ class ShellPage extends StatefulWidget {
 }
 
 class _ShellPageState extends State<ShellPage> {
-  // Needed to open Drawer programmatically on mobile (hamburger button)
   final _scaffoldKey = GlobalKey<ScaffoldState>();
 
-  /// Maps selected tab to the page widget.
-  /// Later we can replace with router, but this is simple and clean now.
-  Widget _pageForTab(ShellTab tab) {
+  bool _drawerOpen = false; // mobile drawer state
+  bool _sidebarCollapsed = false; // desktop/tablet sidebar state
+
+  // Keep pages alive => avoids reloading/re-fetching when switching tabs.
+  late final List<Widget> _pages = const [
+    DashboardPage(),
+    ProjectsPage(),
+    IssuesPage(),
+    SettingsPage(),
+  ];
+
+  int _indexForTab(ShellTab tab) {
     return switch (tab) {
-      ShellTab.dashboard => const DashboardPage(),
-      ShellTab.projects => const ProjectsPage(),
-      ShellTab.issues => const IssuesPage(),
-      ShellTab.settings => const SettingsPage(),
+      ShellTab.dashboard => 0,
+      ShellTab.projects => 1,
+      ShellTab.issues => 2,
+      ShellTab.settings => 3,
     };
+  }
+
+  void _toggleMobileDrawer() {
+    final scaffold = _scaffoldKey.currentState;
+    if (scaffold == null) return;
+
+    if (_drawerOpen) {
+      Navigator.of(context).pop(); // closes drawer
+    } else {
+      scaffold.openDrawer();
+    }
+  }
+
+  void _toggleDesktopSidebar() {
+    setState(() => _sidebarCollapsed = !_sidebarCollapsed);
   }
 
   @override
@@ -43,27 +66,30 @@ class _ShellPageState extends State<ShellPage> {
 
     return BlocBuilder<ShellBloc, ShellState>(
       builder: (context, state) {
-        // The main content area changes depending on selected tab
+        final idx = _indexForTab(state.selected);
+
         final content = Container(
           color: AppColors.bg,
-          child: _pageForTab(state.selected),
+          child: IndexedStack(
+            index: idx,
+            children: _pages,
+          ),
         );
 
-        /// MOBILE LAYOUT:
-        /// - Drawer navigation
-        /// - TopBar has hamburger icon
+        // ---------------- MOBILE (Drawer) ----------------
         if (isMobile) {
           return Scaffold(
             key: _scaffoldKey,
+            onDrawerChanged: (isOpen) => setState(() => _drawerOpen = isOpen),
             appBar: TopBar(
-              onMenuTap: () => _scaffoldKey.currentState?.openDrawer(),
+              isMobile: true,
+              drawerOpen: _drawerOpen,
+              onNavToggle: _toggleMobileDrawer,
             ),
             drawer: Drawer(
               child: SafeArea(
-                // We reuse SideNav inside Drawer
                 child: SideNav(
                   extended: true,
-                  // After selecting an item, close drawer
                   onItemSelected: () => Navigator.of(context).pop(),
                 ),
               ),
@@ -72,14 +98,31 @@ class _ShellPageState extends State<ShellPage> {
           );
         }
 
-        /// TABLET / DESKTOP LAYOUT:
-        /// - Left NavigationRail
-        /// - Desktop uses extended rail (icons + labels)
+        // ---------------- TABLET / DESKTOP (Collapsible rail) ----------------
+        // You can decide:
+        // - Desktop default expanded
+        // - Tablet default collapsed
+        final extended = isDesktop && !_sidebarCollapsed;
+
         return Scaffold(
-          appBar: const TopBar(),
+          appBar: TopBar(
+            isMobile: false,
+            sidebarCollapsed: _sidebarCollapsed,
+            onNavToggle: _toggleDesktopSidebar,
+          ),
           body: Row(
             children: [
-              SideNav(extended: isDesktop),
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                curve: Curves.easeOut,
+                width: _sidebarCollapsed ? 72 : 280, // smooth collapse
+                child: ClipRect(
+                  child: SideNav(
+                    extended: extended,
+                    onItemSelected: null,
+                  ),
+                ),
+              ),
               const VerticalDivider(width: 1, thickness: 1),
               Expanded(child: content),
             ],
