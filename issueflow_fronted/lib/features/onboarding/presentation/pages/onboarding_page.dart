@@ -27,6 +27,10 @@ class _OnboardingPageState extends State<OnboardingPage> {
 
   final invites = TextEditingController();
 
+  // ✅ NEW (UI-only for invite step)
+  final _inviteEmailCtrl = TextEditingController();
+  final List<String> _inviteEmails = [];
+
   final issueTitle = TextEditingController();
   final issueDesc = TextEditingController();
 
@@ -42,6 +46,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
     projectKey.dispose();
     projectDesc.dispose();
     invites.dispose();
+    _inviteEmailCtrl.dispose(); // ✅ NEW
     issueTitle.dispose();
     issueDesc.dispose();
     super.dispose();
@@ -84,8 +89,47 @@ class _OnboardingPageState extends State<OnboardingPage> {
         .toList();
   }
 
+  // ✅ NEW: keep invites controller in sync with chips (no backend change)
+  void _syncInvitesController() {
+    invites.text = _inviteEmails.join(', ');
+  }
+
+  bool _isValidEmail(String email) {
+    final e = email.trim();
+    // Simple email check (no dependency)
+    final ok = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(e);
+    return ok;
+  }
+
+  void _addInviteEmail() {
+    final email = _inviteEmailCtrl.text.trim().toLowerCase();
+    if (email.isEmpty) return;
+
+    if (!_isValidEmail(email)) {
+      AppToast.show(context, message: "Enter a valid email", isError: true);
+      return;
+    }
+
+    if (_inviteEmails.contains(email)) {
+      AppToast.show(context, message: "Already added", isError: true);
+      return;
+    }
+
+    setState(() {
+      _inviteEmails.add(email);
+      _inviteEmailCtrl.clear();
+      _syncInvitesController();
+    });
+  }
+
+  void _removeInviteEmail(String email) {
+    setState(() {
+      _inviteEmails.remove(email);
+      _syncInvitesController();
+    });
+  }
+
   String _fmtDate(DateTime d) {
-    // Simple yyyy-mm-dd formatting (no extra intl dependency)
     final mm = d.month.toString().padLeft(2, '0');
     final dd = d.day.toString().padLeft(2, '0');
     return "${d.year}-$mm-$dd";
@@ -93,8 +137,6 @@ class _OnboardingPageState extends State<OnboardingPage> {
 
   Future<void> _pickDueDate() async {
     final now = DateTime.now();
-
-    // If already selected, use it as initial
     final initial = dueDate ?? now;
 
     final picked = await showDatePicker(
@@ -108,7 +150,6 @@ class _OnboardingPageState extends State<OnboardingPage> {
     if (picked == null) return;
 
     setState(() {
-      // Normalize time to midnight (optional, but clean)
       dueDate = DateTime(picked.year, picked.month, picked.day);
     });
   }
@@ -135,7 +176,6 @@ class _OnboardingPageState extends State<OnboardingPage> {
     if (!_validateStep()) return;
 
     if (step == 2) {
-      // Last step -> call backend onboarding setup
       final payload = _buildPayload();
       context.read<OnboardingBloc>().add(OnboardingSetupRequested(payload));
       return;
@@ -215,7 +255,6 @@ class _OnboardingPageState extends State<OnboardingPage> {
               message: "Setup complete! Project ${state.result.projectKey} created.",
             );
 
-            // Refresh auth (/auth/me) so AppGate can route to Shell
             context.read<AuthBloc>().add(const AuthAppStarted());
           }
 
@@ -227,6 +266,9 @@ class _OnboardingPageState extends State<OnboardingPage> {
         child: BlocBuilder<OnboardingBloc, OnboardingState>(
           builder: (context, state) {
             final isLoading = state is OnboardingLoading;
+
+            // ✅ KEYBOARD FIX: add bottom padding when keyboard is open
+            final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
             return Scaffold(
               appBar: AppBar(
@@ -257,12 +299,16 @@ class _OnboardingPageState extends State<OnboardingPage> {
                               Expanded(child: _rightStepPanel(context, isLoading)),
                             ],
                           )
-                        : Column(
-                            children: [
-                              _leftInfoPanel(),
-                              const SizedBox(height: 16),
-                              _rightStepPanel(context, isLoading),
-                            ],
+                        : SingleChildScrollView(
+                            // ✅ this prevents overflow on mobile when keyboard opens
+                            padding: EdgeInsets.only(bottom: bottomInset),
+                            child: Column(
+                              children: [
+                                _leftInfoPanel(),
+                                const SizedBox(height: 16),
+                                _rightStepPanel(context, isLoading),
+                              ],
+                            ),
                           ),
                   ),
                 ),
@@ -346,20 +392,80 @@ class _OnboardingPageState extends State<OnboardingPage> {
               decoration: _dec('Description (optional)', hint: 'Short description of the project'),
             ),
           ],
+
+          // ✅ ONLY THIS STEP UI IS UPDATED
           if (step == 1) ...[
             _stepHeader(context, 'Invite members', 'Add teammates by email (optional).'),
             const SizedBox(height: 16),
-            TextField(
-              controller: invites,
-              enabled: !isLoading,
-              decoration: _dec('Emails', hint: 'a@x.com, b@y.com'),
+
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.surface2,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _inviteEmailCtrl,
+                      enabled: !isLoading,
+                      keyboardType: TextInputType.emailAddress,
+                      textInputAction: TextInputAction.done,
+                      onSubmitted: (_) => isLoading ? null : _addInviteEmail(),
+                      decoration: const InputDecoration(
+                        hintText: 'Enter email (e.g. a@x.com)',
+                        border: InputBorder.none,
+                        isDense: true,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  SizedBox(
+                    height: 40,
+                    child: ElevatedButton.icon(
+                      onPressed: isLoading ? null : _addInviteEmail,
+                      icon: const Icon(Icons.add),
+                      label: const Text("Add"),
+                    ),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 8),
+
+            const SizedBox(height: 12),
+
+            if (_inviteEmails.isNotEmpty) ...[
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: _inviteEmails
+                    .map(
+                      (e) => Chip(
+                        label: Text(e),
+                        onDeleted: isLoading ? null : () => _removeInviteEmail(e),
+                        deleteIconColor: AppColors.textSecondary,
+                      ),
+                    )
+                    .toList(),
+              ),
+              const SizedBox(height: 8),
+            ],
+
             const Text(
               'Tip: you can invite later from Project settings.',
               style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
             ),
+
+            // keep original controller present (so no behavior changes)
+            // ignore: dead_code
+            Offstage(
+              offstage: true,
+              child: TextField(controller: invites),
+            ),
           ],
+
           if (step == 2) ...[
             _stepHeader(context, 'Create your first issue', 'Start with a small task to test the workflow.'),
             const SizedBox(height: 16),
@@ -369,7 +475,6 @@ class _OnboardingPageState extends State<OnboardingPage> {
               decoration: _dec('Title', hint: 'e.g., Setup CI pipeline'),
             ),
             const SizedBox(height: 12),
-
             Row(
               children: [
                 Expanded(
@@ -399,14 +504,9 @@ class _OnboardingPageState extends State<OnboardingPage> {
                 ),
               ],
             ),
-
             const SizedBox(height: 12),
-
-            // ✅ Due date UI (optional)
             _dueDateRow(isLoading),
-
             const SizedBox(height: 12),
-
             TextField(
               controller: issueDesc,
               enabled: !isLoading,
@@ -463,7 +563,11 @@ class _OnboardingPageState extends State<OnboardingPage> {
               children: [
                 const Text(
                   "Due date",
-                  style: TextStyle(color: AppColors.textPrimary, fontSize: 13, fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
                 const SizedBox(height: 2),
                 Text(

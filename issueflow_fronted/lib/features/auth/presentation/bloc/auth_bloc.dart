@@ -52,6 +52,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   }
 
   Future<void> _onAppStarted(AuthAppStarted event, Emitter<AuthState> emit) async {
+     emit(const AuthLoading());
     try {
       await _emitMe(emit);
     } catch (_) {

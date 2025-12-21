@@ -5,6 +5,7 @@ import '../../../../core/config/app_config.dart';
 import '../../../../core/errors/app_exception.dart';
 import '../../../../core/storage/token_storage.dart';
 import '../models/project_model.dart';
+import '../models/invite_model.dart';
 
 class ProjectsRemoteDataSource {
   final http.Client client;
@@ -155,5 +156,60 @@ class ProjectsRemoteDataSource {
     }
 
     return ProjectModel.fromJson(jsonDecode(res.body) as Map<String, dynamic>);
+  }
+
+  
+  Future<List<InviteModel>> listMyInvites() async {
+    final res = await _runWithAutoRefresh(() async {
+      final headers = await _authHeaders();
+      return client.get(_u("/me/invites"), headers: headers);
+    });
+
+    if (res.statusCode != 200) {
+      throw AppException(
+        _extractDetail(res.body) ?? "Failed to load invites",
+        statusCode: res.statusCode,
+      );
+    }
+
+    final decoded = jsonDecode(res.body);
+    return InviteModel.listFromJson(decoded);
+  }
+
+  Future<void> acceptInvite(String token) async {
+    final res = await _runWithAutoRefresh(() async {
+      final headers = await _authHeaders();
+      return client.post(_u("/invites/$token/accept"), headers: headers);
+    });
+
+    if (res.statusCode != 200) {
+      throw AppException(
+        _extractDetail(res.body) ?? "Failed to accept invite",
+        statusCode: res.statusCode,
+      );
+    }
+  }
+
+  Future<Map<String, dynamic>> inviteMembersToProject(
+    String projectId,
+    List<String> emails,
+  ) async {
+    final res = await _runWithAutoRefresh(() async {
+      final headers = await _authHeaders();
+      return client.post(
+        _u("/projects/$projectId/invites"),
+        headers: headers,
+        body: jsonEncode({"emails": emails}),
+      );
+    });
+
+    if (res.statusCode != 200 && res.statusCode != 201) {
+      throw AppException(
+        _extractDetail(res.body) ?? "Failed to send invites",
+        statusCode: res.statusCode,
+      );
+    }
+
+    return jsonDecode(res.body) as Map<String, dynamic>;
   }
 }

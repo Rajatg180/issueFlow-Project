@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:issueflow_fronted/features/projects/presentation/bloc/project/projects_bloc.dart';
+import 'package:issueflow_fronted/features/projects/presentation/bloc/project/projects_event.dart';
 
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/responsive/responsive.dart';
 import '../../../dashboard/presentation/pages/dashboard_page.dart';
 import '../../../issues/presentation/pages/issues_page.dart';
-import '../../../projects/presentation/pages/projects_page.dart';
+import '../../../projects/presentation/pages/projects/projects_page.dart';
 import '../../../settings/presentation/pages/settings_page.dart';
 import '../../nav_items.dart';
 import '../bloc/shell_bloc.dart';

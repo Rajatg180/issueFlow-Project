@@ -1,0 +1,1926 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:issueflow_fronted/core/theme/app_colors.dart';
+import 'package:issueflow_fronted/core/widgets/app_toast.dart';
+import 'package:issueflow_fronted/core/widgets/responsive/responsive.dart';
+
+import 'package:issueflow_fronted/features/projects/presentation/bloc/invite/invites_bloc.dart';
+import 'package:issueflow_fronted/features/projects/presentation/bloc/invite/invites_event.dart';
+import 'package:issueflow_fronted/features/projects/presentation/bloc/invite/invites_state.dart';
+
+import 'package:issueflow_fronted/features/projects/presentation/bloc/project/projects_bloc.dart';
+import 'package:issueflow_fronted/features/projects/presentation/bloc/project/projects_event.dart';
+import 'package:issueflow_fronted/features/projects/presentation/bloc/project/projects_state.dart';
+
+import 'package:issueflow_fronted/features/projects/presentation/cubit/invite_members_cubit.dart';
+
+class ProjectsPage extends StatefulWidget {
+  const ProjectsPage({super.key});
+
+  @override
+  State<ProjectsPage> createState() => _ProjectsPageState();
+}
+
+class _ProjectsPageState extends State<ProjectsPage> {
+  final _searchCtrl = TextEditingController();
+  String _query = "";
+
+  @override
+  void initState() {
+    super.initState();
+    context.read<ProjectsBloc>().add(const ProjectsFetchRequested());
+
+    // Optional: also fetch invites once when landing on Projects (so badge appears immediately)
+    try {
+      context.read<InvitesBloc>().add(const InvitesFetchRequested());
+    } catch (_) {}
+
+    _searchCtrl.addListener(() {
+      setState(() => _query = _searchCtrl.text.trim().toLowerCase());
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _openCreate(BuildContext context) async {
+    final isMobile = Responsive.isMobile(context);
+
+    if (isMobile) {
+      await showModalBottomSheet<bool>(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: AppColors.surface,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+        ),
+        builder: (_) => const _CreateProjectSheet(),
+      );
+      return;
+    }
+
+    await showDialog<bool>(
+      context: context,
+      builder: (_) => const _CreateProjectDialog(),
+    );
+  }
+
+  // ✅ OPEN INVITES AS DIALOG/SHEET (NO SEPARATE PAGE)
+  Future<void> _openInvites(BuildContext context) async {
+    final isMobile = Responsive.isMobile(context);
+
+    final invitesBloc = context.read<InvitesBloc>();
+
+    // fetch invites before opening
+    invitesBloc.add(const InvitesFetchRequested());
+
+    if (isMobile) {
+      await showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: AppColors.surface,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+        ),
+        builder: (_) => BlocProvider.value(
+          value: invitesBloc,
+          child: const _InvitesSheet(),
+        ),
+      );
+      return;
+    }
+
+    await showDialog(
+      context: context,
+      builder: (_) =>
+          BlocProvider.value(value: invitesBloc, child: const _InvitesDialog()),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isMobile = Responsive.isMobile(context);
+
+    // ✅ live pending invites count for badge
+    final invitesCount = context.select(
+      (InvitesBloc b) => b.state.invites.length,
+    );
+
+    return BlocConsumer<ProjectsBloc, ProjectsState>(
+      listenWhen: (prev, curr) =>
+          prev.error != curr.error && curr.error != null,
+      listener: (context, state) {
+        AppToast.show(
+          context,
+          message: state.error!.replaceFirst('Exception: ', ''),
+          isError: true,
+        );
+      },
+      builder: (context, state) {
+        final items = state.items.where((p) {
+          if (_query.isEmpty) return true;
+          final name = p.name.toLowerCase();
+          final key = p.key.toLowerCase();
+          final desc = (p.description ?? "").toLowerCase();
+          return name.contains(_query) ||
+              key.contains(_query) ||
+              desc.contains(_query);
+        }).toList();
+
+        items.sort((a, b) {
+          int byPin = (b.isPinned ? 1 : 0).compareTo(a.isPinned ? 1 : 0);
+          if (byPin != 0) return byPin;
+          int byFav = (b.isFavorite ? 1 : 0).compareTo(a.isFavorite ? 1 : 0);
+          if (byFav != 0) return byFav;
+          return b.createdAt.compareTo(a.createdAt);
+        });
+
+        return Container(
+          color: AppColors.bg,
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1100),
+              child: Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: isMobile ? 12 : 18,
+                  vertical: isMobile ? 12 : 18,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _Header(
+                      searchCtrl: _searchCtrl,
+                      creating: state.creating,
+                      onCreate: () => _openCreate(context),
+                      onInvites: () => _openInvites(context),
+
+                      // ✅ NEW
+                      invitesCount: invitesCount,
+                    ),
+                    const SizedBox(height: 12),
+                    Expanded(
+                      child: _Body(
+                        loading: state.loading,
+                        creating: state.creating,
+                        deletingId: state.deletingId,
+                        updatingPrefId: state.updatingPrefId,
+                        hasSearch: _query.isNotEmpty,
+                        filteredCount: items.length,
+                        allCount: state.items.length,
+                        items: items,
+                        onCreate: () => _openCreate(context),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _Header extends StatefulWidget {
+  const _Header({
+    required this.searchCtrl,
+    required this.creating,
+    required this.onCreate,
+    required this.onInvites,
+    required this.invitesCount,
+  });
+
+  final TextEditingController searchCtrl;
+  final bool creating;
+  final VoidCallback onCreate;
+  final VoidCallback onInvites;
+  final int invitesCount;
+
+  @override
+  State<_Header> createState() => _HeaderState();
+}
+
+class _HeaderState extends State<_Header> {
+  bool _searchOpen = false;
+  final _focus = FocusNode();
+
+  @override
+  void dispose() {
+    _focus.dispose();
+    super.dispose();
+  }
+
+  void _openSearch() {
+    if (_searchOpen) return;
+    setState(() => _searchOpen = true);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _focus.requestFocus();
+    });
+  }
+
+  void _closeSearch() {
+    if (!_searchOpen) return;
+    setState(() => _searchOpen = false);
+    widget.searchCtrl.clear();
+    _focus.unfocus();
+  }
+
+  Widget _bellWithBadge({required bool hasInvites, required int count}) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        const Icon(Icons.notifications_none),
+        if (hasInvites)
+          Positioned(
+            right: -2,
+            top: -2,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEF4444),
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(color: AppColors.surface, width: 2),
+              ),
+              constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
+              child: Text(
+                count > 99 ? "99+" : "$count",
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
+                  height: 1.0,
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _squareButton({
+    required VoidCallback? onTap,
+    required Widget child,
+    String? tooltip,
+  }) {
+    return SizedBox(
+      height: 44,
+      width: 44,
+      child: Material(
+        color: Colors.transparent,
+        child: Ink(
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.border),
+          ),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: onTap,
+            child: Tooltip(
+              message: tooltip ?? "",
+              child: Center(child: child),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _mobileSearchField() {
+    return SizedBox(
+      height: 44,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOut,
+        decoration: BoxDecoration(
+          color: AppColors.surface2,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Row(
+          children: [
+            IconButton(
+              tooltip: "Close search",
+              onPressed: _closeSearch,
+              icon: const Icon(Icons.close, color: AppColors.textSecondary, size: 18),
+            ),
+            Expanded(
+              child: TextField(
+                controller: widget.searchCtrl,
+                focusNode: _focus,
+                decoration: const InputDecoration(
+                  hintText: "Search projects…",
+                  border: InputBorder.none,
+                  isDense: true,
+                  contentPadding: EdgeInsets.only(bottom: 2),
+                ),
+              ),
+            ),
+            if (widget.searchCtrl.text.isNotEmpty)
+              IconButton(
+                tooltip: "Clear",
+                onPressed: () => widget.searchCtrl.clear(),
+                icon: const Icon(Icons.backspace_outlined, color: AppColors.textSecondary, size: 18),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isMobile = Responsive.isMobile(context);
+    final hasInvites = widget.invitesCount > 0;
+
+    return Container(
+      padding: EdgeInsets.all(isMobile ? 12 : 14),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isNarrow = constraints.maxWidth < 720;
+
+          final title = Row(
+            mainAxisSize: MainAxisSize.min,
+            children: const [
+              Icon(Icons.dashboard_customize_outlined, color: AppColors.textSecondary),
+              SizedBox(width: 10),
+              _HeaderTitle(),
+            ],
+          );
+
+          // ✅ MOBILE: clean header row + optional search row
+          if (isMobile) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(child: title),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _squareButton(
+                          tooltip: _searchOpen ? "Close search" : "Search",
+                          onTap: _searchOpen ? _closeSearch : _openSearch,
+                          child: Icon(
+                            _searchOpen ? Icons.close : Icons.search,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        _squareButton(
+                          tooltip: "Invites",
+                          onTap: widget.onInvites,
+                          child: _bellWithBadge(hasInvites: hasInvites, count: widget.invitesCount),
+                        ),
+                        const SizedBox(width: 8),
+                        _squareButton(
+                          tooltip: "Create project",
+                          onTap: widget.creating ? null : widget.onCreate,
+                          child: Icon(
+                            Icons.add,
+                            color: widget.creating ? AppColors.textSecondary : AppColors.textPrimary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                if (_searchOpen) ...[
+                  const SizedBox(height: 10),
+                  _mobileSearchField(),
+                ],
+              ],
+            );
+          }
+
+          // ✅ TABLET/DESKTOP: keep your current behavior
+          final actions = SizedBox(
+            width: isNarrow ? double.infinity : null,
+            child: Row(
+              mainAxisSize: isNarrow ? MainAxisSize.max : MainAxisSize.min,
+              children: [
+                Expanded(
+                  flex: isNarrow ? 1 : 0,
+                  child: Align(
+                    alignment: Alignment.centerRight,
+                    child: SizedBox(
+                      width: isNarrow ? double.infinity : (_searchOpen ? 340 : 44),
+                      height: 44,
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 180),
+                        curve: Curves.easeOut,
+                        decoration: BoxDecoration(
+                          color: AppColors.surface2,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppColors.border),
+                        ),
+                        child: Row(
+                          children: [
+                            IconButton(
+                              tooltip: _searchOpen ? "Close search" : "Search",
+                              onPressed: _searchOpen ? _closeSearch : _openSearch,
+                              icon: Icon(
+                                _searchOpen ? Icons.close : Icons.search,
+                                color: AppColors.textSecondary,
+                                size: 18,
+                              ),
+                            ),
+                            if (_searchOpen) ...[
+                              Expanded(
+                                child: TextField(
+                                  controller: widget.searchCtrl,
+                                  focusNode: _focus,
+                                  decoration: const InputDecoration(
+                                    hintText: "Search projects…",
+                                    border: InputBorder.none,
+                                    isDense: true,
+                                    contentPadding: EdgeInsets.only(bottom: 2),
+                                  ),
+                                ),
+                              ),
+                              if (widget.searchCtrl.text.isNotEmpty)
+                                IconButton(
+                                  tooltip: "Clear",
+                                  onPressed: () => widget.searchCtrl.clear(),
+                                  icon: const Icon(
+                                    Icons.backspace_outlined,
+                                    color: AppColors.textSecondary,
+                                    size: 18,
+                                  ),
+                                ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                SizedBox(
+                  height: 44,
+                  child: OutlinedButton.icon(
+                    onPressed: widget.onInvites,
+                    icon: _bellWithBadge(hasInvites: hasInvites, count: widget.invitesCount),
+                    label: const Text("Project invites"),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                if (isNarrow)
+                  Expanded(
+                    child: SizedBox(
+                      height: 44,
+                      child: ElevatedButton.icon(
+                        onPressed: widget.creating ? null : widget.onCreate,
+                        icon: const Icon(Icons.add),
+                        label: const Text("Create project"),
+                      ),
+                    ),
+                  )
+                else
+                  SizedBox(
+                    height: 44,
+                    child: ElevatedButton.icon(
+                      onPressed: widget.creating ? null : widget.onCreate,
+                      icon: const Icon(Icons.add),
+                      label: const Text("Create project"),
+                    ),
+                  ),
+              ],
+            ),
+          );
+
+          return Wrap(
+            runSpacing: 10,
+            spacing: 10,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              if (isNarrow) ...[
+                SizedBox(width: double.infinity, child: title),
+                actions,
+              ] else ...[
+                title,
+                const SizedBox(width: 8),
+                actions,
+              ],
+            ],
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _HeaderTitle extends StatelessWidget {
+  const _HeaderTitle();
+
+  @override
+  Widget build(BuildContext context) {
+    final isMobile = Responsive.isMobile(context);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Text(
+          "Projects",
+          style: TextStyle(
+            color: AppColors.textPrimary,
+            fontSize: 18,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        if (!isMobile)
+          const Padding(
+            padding: EdgeInsets.only(top: 2),
+            child: Text(
+              "Manage projects and jump into issues.",
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _Body extends StatelessWidget {
+  const _Body({
+    required this.loading,
+    required this.creating,
+    required this.deletingId,
+    required this.updatingPrefId,
+    required this.hasSearch,
+    required this.filteredCount,
+    required this.allCount,
+    required this.items,
+    required this.onCreate,
+  });
+
+  final bool loading;
+  final bool creating;
+  final String? deletingId;
+  final String? updatingPrefId;
+
+  final bool hasSearch;
+  final int filteredCount;
+  final int allCount;
+  final List items;
+  final VoidCallback onCreate;
+
+  @override
+  Widget build(BuildContext context) {
+    if (loading) return const Center(child: CircularProgressIndicator());
+
+    if (items.isEmpty) {
+      return _EmptyState(
+        hasSearch: hasSearch,
+        creating: creating,
+        onCreate: onCreate,
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(left: 2, bottom: 10),
+          child: Text(
+            hasSearch
+                ? "Showing $filteredCount of $allCount projects"
+                : "$allCount projects",
+            style: const TextStyle(
+              color: AppColors.textSecondary,
+              fontSize: 12,
+            ),
+          ),
+        ),
+        Expanded(
+          child: ListView.separated(
+            itemCount: items.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 10),
+            itemBuilder: (context, index) {
+              final p = items[index];
+
+              return _ProjectTile(
+                id: p.id,
+                name: p.name,
+                keyText: p.key,
+                description: p.description,
+                createdAt: p.createdAt,
+                isFavorite: p.isFavorite,
+                isPinned: p.isPinned,
+                isDeleting: deletingId == p.id,
+                isUpdatingPref: updatingPrefId == p.id,
+                onTap: () =>
+                    AppToast.show(context, message: "Selected ${p.key}"),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ProjectTile extends StatelessWidget {
+  const _ProjectTile({
+    required this.id,
+    required this.name,
+    required this.keyText,
+    required this.description,
+    required this.createdAt,
+    required this.isFavorite,
+    required this.isPinned,
+    required this.isDeleting,
+    required this.isUpdatingPref,
+    required this.onTap,
+  });
+
+  final String id;
+  final String name;
+  final String keyText;
+  final String? description;
+  final DateTime createdAt;
+  final bool isFavorite;
+  final bool isPinned;
+
+  final bool isDeleting;
+  final bool isUpdatingPref;
+  final VoidCallback onTap;
+
+  String _createdLabel(DateTime d) {
+    String two(int v) => v < 10 ? "0$v" : "$v";
+    return "${two(d.day)}/${two(d.month)}/${d.year}";
+  }
+
+  Future<void> _confirmDelete(BuildContext context) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        title: const Text(
+          "Delete project?",
+          style: TextStyle(
+            color: AppColors.textPrimary,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        content: Text(
+          "Project $keyText will be removed.\nAll issues in this project will also be deleted.",
+          style: const TextStyle(color: AppColors.textSecondary),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text("Cancel"),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF7F1D1D),
+              foregroundColor: AppColors.textPrimary,
+            ),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text("Delete"),
+          ),
+        ],
+      ),
+    );
+
+    if (ok == true) {
+      context.read<ProjectsBloc>().add(ProjectsDeleteRequested(id));
+    }
+  }
+
+  void _toggleFavorite(BuildContext context) {
+    if (isUpdatingPref || isDeleting) return;
+    context.read<ProjectsBloc>().add(
+      ProjectsFavoriteToggled(projectId: id, value: !isFavorite),
+    );
+    AppToast.show(
+      context,
+      message: !isFavorite ? "Added to favorites" : "Removed from favorites",
+    );
+  }
+
+  void _togglePin(BuildContext context) {
+    if (isUpdatingPref || isDeleting) return;
+    context.read<ProjectsBloc>().add(
+      ProjectsPinnedToggled(projectId: id, value: !isPinned),
+    );
+    AppToast.show(
+      context,
+      message: !isPinned ? "Pinned to sidebar" : "Unpinned",
+    );
+  }
+
+  Future<void> _openInviteMembers(BuildContext context) async {
+    if (isUpdatingPref || isDeleting) return;
+
+    InviteMembersCubit? cubit;
+    try {
+      cubit = context.read<InviteMembersCubit>();
+    } catch (_) {
+      cubit = null;
+    }
+
+    if (cubit == null) {
+      AppToast.show(
+        context,
+        isError: true,
+        message: "InviteMembersCubit not found. Provide it with BlocProvider.",
+      );
+      return;
+    }
+
+    final isMobile = Responsive.isMobile(context);
+
+    if (isMobile) {
+      await showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: AppColors.surface,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+        ),
+        builder: (_) => BlocProvider.value(
+          value: cubit!,
+          child: _InviteMembersSheet(
+            projectId: id,
+            projectName: name,
+            projectKey: keyText,
+          ),
+        ),
+      );
+      return;
+    }
+
+    await showDialog(
+      context: context,
+      builder: (_) => BlocProvider.value(
+        value: cubit!,
+        child: _InviteMembersDialog(
+          projectId: id,
+          projectName: name,
+          projectKey: keyText,
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final disabled = isDeleting || isUpdatingPref;
+
+    return LayoutBuilder(
+      builder: (context, c) {
+        final narrow = c.maxWidth < 520;
+        final veryNarrow = c.maxWidth < 380;
+
+        final createdPill = Text(
+          "Created ${_createdLabel(createdAt)}",
+          style: const TextStyle(
+            color: AppColors.textSecondary,
+            fontSize: 8,
+            fontWeight: FontWeight.w600,
+          ),
+        );
+
+        Widget rightActionsInline() {
+          return Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                tooltip: "Invite members",
+                onPressed: disabled ? null : () => _openInviteMembers(context),
+                icon: const Icon(
+                  Icons.person_add_alt_1,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              IconButton(
+                tooltip: isPinned ? "Unpin" : "Pin",
+                onPressed: disabled ? null : () => _togglePin(context),
+                icon: Icon(
+                  isPinned ? Icons.push_pin : Icons.push_pin_outlined,
+                  color: isPinned ? Colors.red : AppColors.textSecondary,
+                ),
+              ),
+              IconButton(
+                tooltip: isFavorite ? "Unfavorite" : "Favorite",
+                onPressed: disabled ? null : () => _toggleFavorite(context),
+                icon: Icon(
+                  isFavorite ? Icons.star : Icons.star_border,
+                  color: isFavorite ? Colors.amber : AppColors.textSecondary,
+                ),
+              ),
+              PopupMenuButton<String>(
+                tooltip: "Actions",
+                color: AppColors.surface,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                onSelected: (v) {
+                  if (v == "invite") _openInviteMembers(context);
+                  if (v == "delete") _confirmDelete(context);
+                },
+                itemBuilder: (_) => const [
+                  PopupMenuItem(
+                    value: "invite",
+                    child: Text(
+                      "Invite members",
+                      style: TextStyle(color: AppColors.textPrimary),
+                    ),
+                  ),
+                  PopupMenuDivider(),
+                  PopupMenuItem(
+                    value: "delete",
+                    child: Text(
+                      "Delete",
+                      style: TextStyle(color: AppColors.textPrimary),
+                    ),
+                  ),
+                ],
+                child: const Padding(
+                  padding: EdgeInsets.only(top: 2),
+                  child: Icon(Icons.more_vert, color: AppColors.textSecondary),
+                ),
+              ),
+            ],
+          );
+        }
+
+        Widget rightActionsMenuOnly() {
+          return PopupMenuButton<String>(
+            tooltip: "Actions",
+            color: AppColors.surface,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            onSelected: (v) {
+              if (v == "invite") _openInviteMembers(context);
+              if (v == "fav") _toggleFavorite(context);
+              if (v == "pin") _togglePin(context);
+              if (v == "delete") _confirmDelete(context);
+            },
+            itemBuilder: (_) => [
+              const PopupMenuItem(
+                value: "invite",
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.person_add_alt_1,
+                      size: 18,
+                      color: AppColors.textSecondary,
+                    ),
+                    SizedBox(width: 10),
+                    Text(
+                      "Invite members",
+                      style: TextStyle(color: AppColors.textPrimary),
+                    ),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
+                value: "pin",
+                child: Row(
+                  children: [
+                    Icon(
+                      isPinned ? Icons.push_pin : Icons.push_pin_outlined,
+                      size: 18,
+                      color: isPinned ? Colors.red : AppColors.textSecondary,
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      isPinned ? "Unpin" : "Pin",
+                      style: const TextStyle(color: AppColors.textPrimary),
+                    ),
+                  ],
+                ),
+              ),
+              PopupMenuItem(
+                value: "fav",
+                child: Row(
+                  children: [
+                    Icon(
+                      isFavorite ? Icons.star : Icons.star_border,
+                      size: 18,
+                      color: isFavorite
+                          ? Colors.amber
+                          : AppColors.textSecondary,
+                    ),
+                    const SizedBox(width: 10),
+                    Text(
+                      isFavorite ? "Unfavorite" : "Favorite",
+                      style: const TextStyle(color: AppColors.textPrimary),
+                    ),
+                  ],
+                ),
+              ),
+              const PopupMenuDivider(),
+              const PopupMenuItem(
+                value: "delete",
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.delete_outline,
+                      size: 18,
+                      color: Color(0xFFEF4444),
+                    ),
+                    SizedBox(width: 10),
+                    Text(
+                      "Delete",
+                      style: TextStyle(color: AppColors.textPrimary),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+            child: const Padding(
+              padding: EdgeInsets.only(top: 2),
+              child: Icon(Icons.more_vert, color: AppColors.textSecondary),
+            ),
+          );
+        }
+
+        Widget leadingRail() {
+          return SizedBox(
+            width: 56,
+            child: Container(
+              height: double.infinity,
+              decoration: BoxDecoration(
+                color: AppColors.surface2,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: AppColors.border),
+              ),
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    keyText.length >= 2 ? keyText.substring(0, 2) : keyText,
+                    style: const TextStyle(
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.0,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        return Opacity(
+          opacity: disabled ? 0.75 : 1,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(18),
+            onTap: disabled ? null : onTap,
+            child: Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(18),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    leadingRail(),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      name,
+                                      style: const TextStyle(
+                                        color: AppColors.textPrimary,
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w800,
+                                        height: 1.1,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Wrap(
+                                      spacing: 8,
+                                      runSpacing: 8,
+                                      crossAxisAlignment:
+                                          WrapCrossAlignment.center,
+                                      children: [
+                                        Text(
+                                          (description == null ||
+                                                  description!.trim().isEmpty)
+                                              ? "No description"
+                                              : description!.trim(),
+                                          style: const TextStyle(
+                                            color: AppColors.textSecondary,
+                                            fontSize: 12.5,
+                                            height: 1.35,
+                                          ),
+                                          maxLines: veryNarrow ? 3 : 2,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              if (isDeleting)
+                                const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              else
+                                (narrow || veryNarrow
+                                    ? rightActionsMenuOnly()
+                                    : rightActionsInline()),
+                            ],
+                          ),
+                          const Spacer(),
+                          createdPill,
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _InviteMembersDialog extends StatelessWidget {
+  const _InviteMembersDialog({
+    required this.projectId,
+    required this.projectName,
+    required this.projectKey,
+  });
+
+  final String projectId;
+  final String projectName;
+  final String projectKey;
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: AppColors.surface,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 580),
+        child: _InviteMembersForm(
+          projectId: projectId,
+          projectName: projectName,
+          projectKey: projectKey,
+          isBottomSheet: false,
+        ),
+      ),
+    );
+  }
+}
+
+class _InviteMembersSheet extends StatelessWidget {
+  const _InviteMembersSheet({
+    required this.projectId,
+    required this.projectName,
+    required this.projectKey,
+  });
+
+  final String projectId;
+  final String projectName;
+  final String projectKey;
+
+  @override
+  Widget build(BuildContext context) {
+    final inset = MediaQuery.of(context).viewInsets.bottom;
+    return Padding(
+      padding: EdgeInsets.only(bottom: inset),
+      child: SafeArea(
+        top: false,
+        child: _InviteMembersForm(
+          projectId: projectId,
+          projectName: projectName,
+          projectKey: projectKey,
+          isBottomSheet: true,
+        ),
+      ),
+    );
+  }
+}
+
+class _InviteMembersForm extends StatefulWidget {
+  const _InviteMembersForm({
+    required this.projectId,
+    required this.projectName,
+    required this.projectKey,
+    required this.isBottomSheet,
+  });
+
+  final String projectId;
+  final String projectName;
+  final String projectKey;
+  final bool isBottomSheet;
+
+  @override
+  State<_InviteMembersForm> createState() => _InviteMembersFormState();
+}
+
+class _InviteMembersFormState extends State<_InviteMembersForm> {
+  final _emailCtrl = TextEditingController();
+  final _focus = FocusNode();
+
+  final List<String> _emails = [];
+
+  @override
+  void dispose() {
+    _emailCtrl.dispose();
+    _focus.dispose();
+    super.dispose();
+  }
+
+  bool _isValidEmail(String v) {
+    final s = v.trim();
+    if (s.isEmpty) return false;
+    return RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(s);
+  }
+
+  void _addEmail() {
+    final raw = _emailCtrl.text.trim();
+    if (!_isValidEmail(raw)) {
+      AppToast.show(context, isError: true, message: "Enter a valid email");
+      return;
+    }
+
+    final e = raw.toLowerCase();
+    if (_emails.contains(e)) {
+      AppToast.show(context, isError: true, message: "Already added");
+      _emailCtrl.clear();
+      _focus.requestFocus();
+      return;
+    }
+
+    setState(() => _emails.add(e));
+    _emailCtrl.clear();
+    _focus.requestFocus();
+  }
+
+  void _removeEmail(String email) {
+    setState(() => _emails.remove(email));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isMobile = Responsive.isMobile(context);
+
+    return BlocConsumer<InviteMembersCubit, InviteMembersState>(
+      listenWhen: (p, c) =>
+          (p.error != c.error && c.error != null) ||
+          (p.invited != c.invited && c.invited != null),
+      listener: (context, state) {
+        if (state.error != null) {
+          AppToast.show(context, isError: true, message: state.error!);
+          return;
+        }
+        if (state.invited != null) {
+          final invited = state.invited ?? 0;
+          final skipped = state.skipped ?? 0;
+          AppToast.show(context, message: "Invited $invited, skipped $skipped");
+          Navigator.pop(context);
+        }
+      },
+      builder: (context, state) {
+        final sending = state.sending;
+
+        return SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(
+            16,
+            16,
+            16,
+            widget.isBottomSheet ? 16 : 18,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          "Invite members",
+                          style: TextStyle(
+                            color: AppColors.textPrimary,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          "${widget.projectName} • ${widget.projectKey}",
+                          style: const TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: "Close",
+                    onPressed: sending ? null : () => Navigator.pop(context),
+                    icon: const Icon(
+                      Icons.close,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              const Text(
+                "Add emails one by one. Tap Add to include them.",
+                style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _emailCtrl,
+                      focusNode: _focus,
+                      enabled: !sending,
+                      keyboardType: TextInputType.emailAddress,
+                      textInputAction: TextInputAction.done,
+                      onSubmitted: (_) => _addEmail(),
+                      decoration: const InputDecoration(
+                        hintText: "Enter email",
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  SizedBox(
+                    height: 46,
+                    child: ElevatedButton.icon(
+                      onPressed: sending ? null : _addEmail,
+                      icon: const Icon(Icons.add),
+                      label: const Text("Add"),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              if (_emails.isNotEmpty) ...[
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface2,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: _emails
+                        .map(
+                          (e) => Chip(
+                            label: Text(
+                              e,
+                              style: const TextStyle(
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                            deleteIconColor: AppColors.textSecondary,
+                            onDeleted: sending ? null : () => _removeEmail(e),
+                            backgroundColor: AppColors.surface,
+                            shape: StadiumBorder(
+                              side: BorderSide(color: AppColors.border),
+                            ),
+                          ),
+                        )
+                        .toList(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ] else ...[
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface2,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: const Text(
+                    "No emails added yet.",
+                    style: TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: sending ? null : () => Navigator.pop(context),
+                      child: const Text("Cancel"),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: sending
+                          ? null
+                          : () {
+                              if (_emails.isEmpty) {
+                                AppToast.show(
+                                  context,
+                                  isError: true,
+                                  message: "Add at least one email",
+                                );
+                                return;
+                              }
+                              context.read<InviteMembersCubit>().send(
+                                widget.projectId,
+                                _emails,
+                              );
+                            },
+                      child: sending
+                          ? const SizedBox(
+                              height: 16,
+                              width: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : Text(isMobile ? "Send" : "Send invites"),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  const _EmptyState({
+    required this.hasSearch,
+    required this.creating,
+    required this.onCreate,
+  });
+
+  final bool hasSearch;
+  final bool creating;
+  final VoidCallback onCreate;
+
+  @override
+  Widget build(BuildContext context) {
+    final isMobile = Responsive.isMobile(context);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+      ),
+      padding: EdgeInsets.all(isMobile ? 14 : 18),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 520),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                hasSearch ? Icons.search_off : Icons.folder_open,
+                color: AppColors.textSecondary,
+                size: 44,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                hasSearch ? "No results" : "No projects yet",
+                style: const TextStyle(
+                  color: AppColors.textPrimary,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                hasSearch
+                    ? "Try a different keyword."
+                    : "Create your first project to start tracking issues.",
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: AppColors.textSecondary,
+                  fontSize: 12,
+                ),
+              ),
+              if (!hasSearch) ...[
+                const SizedBox(height: 14),
+                SizedBox(
+                  width: isMobile ? double.infinity : null,
+                  child: ElevatedButton.icon(
+                    onPressed: creating ? null : onCreate,
+                    icon: const Icon(Icons.add),
+                    label: const Text("Create project"),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ----------------- your create project widgets unchanged -----------------
+
+class _CreateProjectDialog extends StatelessWidget {
+  const _CreateProjectDialog();
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: AppColors.surface,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 520),
+        child: const _CreateProjectForm(isBottomSheet: false),
+      ),
+    );
+  }
+}
+
+class _CreateProjectSheet extends StatelessWidget {
+  const _CreateProjectSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    final inset = MediaQuery.of(context).viewInsets.bottom;
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: inset),
+      child: const SafeArea(
+        top: false,
+        child: _CreateProjectForm(isBottomSheet: true),
+      ),
+    );
+  }
+}
+
+class _CreateProjectForm extends StatefulWidget {
+  const _CreateProjectForm({required this.isBottomSheet});
+  final bool isBottomSheet;
+
+  @override
+  State<_CreateProjectForm> createState() => _CreateProjectFormState();
+}
+
+class _CreateProjectFormState extends State<_CreateProjectForm> {
+  final _formKey = GlobalKey<FormState>();
+  final _nameCtrl = TextEditingController();
+  final _keyCtrl = TextEditingController();
+  final _descCtrl = TextEditingController();
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _keyCtrl.dispose();
+    _descCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final creating = context.select((ProjectsBloc b) => b.state.creating);
+    final isMobile = Responsive.isMobile(context);
+
+    return SingleChildScrollView(
+      padding: EdgeInsets.fromLTRB(16, 16, 16, widget.isBottomSheet ? 16 : 18),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Text(
+                  "Create project",
+                  style: TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const Spacer(),
+                IconButton(
+                  tooltip: "Close",
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close, color: AppColors.textSecondary),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              "Name your project and choose a unique key.",
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+            ),
+            const SizedBox(height: 14),
+            const _FieldLabel("Name"),
+            const SizedBox(height: 6),
+            TextFormField(
+              controller: _nameCtrl,
+              decoration: const InputDecoration(
+                hintText: "e.g. IssueFlow Mobile",
+              ),
+              validator: (v) =>
+                  (v == null || v.trim().isEmpty) ? "Name is required" : null,
+              textInputAction: TextInputAction.next,
+            ),
+            const SizedBox(height: 12),
+            const _FieldLabel("Key"),
+            const SizedBox(height: 6),
+            TextFormField(
+              controller: _keyCtrl,
+              textCapitalization: TextCapitalization.characters,
+              decoration: const InputDecoration(hintText: "e.g. IF"),
+              validator: (v) {
+                final val = (v ?? "").trim();
+                if (val.isEmpty) return "Key is required";
+                if (val.length < 2) return "Min 2 characters";
+                if (val.length > 10) return "Max 10 characters";
+                return null;
+              },
+              textInputAction: TextInputAction.next,
+            ),
+            const SizedBox(height: 12),
+            const _FieldLabel("Description (optional)"),
+            const SizedBox(height: 6),
+            TextFormField(
+              controller: _descCtrl,
+              maxLines: 3,
+              decoration: const InputDecoration(
+                hintText: "Short summary of what this project tracks…",
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: creating ? null : () => Navigator.pop(context),
+                    child: const Text("Cancel"),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: creating ? null : _submit,
+                    child: Text(isMobile ? "Create" : "Create project"),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _submit() {
+    if (_formKey.currentState?.validate() != true) return;
+
+    final name = _nameCtrl.text.trim();
+    final key = _keyCtrl.text.trim();
+    final desc = _descCtrl.text.trim();
+
+    context.read<ProjectsBloc>().add(
+      ProjectsCreateRequested(
+        name: name,
+        key: key,
+        description: desc.isEmpty ? null : desc,
+      ),
+    );
+
+    Navigator.pop(context);
+  }
+}
+
+class _FieldLabel extends StatelessWidget {
+  const _FieldLabel(this.text);
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: const TextStyle(
+        color: AppColors.textSecondary,
+        fontSize: 12,
+        fontWeight: FontWeight.w600,
+      ),
+    );
+  }
+}
+
+// ======================================================================
+// INVITES DIALOG/SHEET UI (NO SEPARATE PAGE)
+// ======================================================================
+
+class _InvitesDialog extends StatelessWidget {
+  const _InvitesDialog();
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: AppColors.surface,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 620),
+        child: const _InvitesContent(isBottomSheet: false),
+      ),
+    );
+  }
+}
+
+class _InvitesSheet extends StatelessWidget {
+  const _InvitesSheet();
+
+  @override
+  Widget build(BuildContext context) {
+    final inset = MediaQuery.of(context).viewInsets.bottom;
+    return Padding(
+      padding: EdgeInsets.only(bottom: inset),
+      child: const SafeArea(
+        top: false,
+        child: _InvitesContent(isBottomSheet: true),
+      ),
+    );
+  }
+}
+
+class _InvitesContent extends StatelessWidget {
+  const _InvitesContent({required this.isBottomSheet});
+  final bool isBottomSheet;
+
+  String _fmtDate(DateTime d) {
+    String two(int v) => v < 10 ? "0$v" : "$v";
+    return "${two(d.day)}/${two(d.month)}/${d.year}";
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocConsumer<InvitesBloc, InvitesState>(
+      listenWhen: (p, c) =>
+          (p.error != c.error && c.error != null) ||
+          (p.acceptedToken != c.acceptedToken && c.acceptedToken != null),
+      listener: (context, state) {
+        if (state.error != null) {
+          AppToast.show(context, message: state.error!, isError: true);
+          return;
+        }
+
+        if (state.acceptedToken != null) {
+          context.read<ProjectsBloc>().add(const ProjectsFetchRequested());
+          AppToast.show(context, message: "Invite accepted");
+          Navigator.pop(context);
+        }
+      },
+      builder: (context, state) {
+        final loading = state.loading;
+
+        return SingleChildScrollView(
+          padding: EdgeInsets.fromLTRB(16, 16, 16, isBottomSheet ? 16 : 18),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(
+                    Icons.mail_outline,
+                    color: AppColors.textSecondary,
+                  ),
+                  const SizedBox(width: 10),
+                  const Expanded(
+                    child: Text(
+                      "Project invites",
+                      style: TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: "Refresh",
+                    onPressed: loading
+                        ? null
+                        : () => context.read<InvitesBloc>().add(
+                            const InvitesFetchRequested(),
+                          ),
+                    icon: const Icon(
+                      Icons.refresh,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                  IconButton(
+                    tooltip: "Close",
+                    onPressed: loading ? null : () => Navigator.pop(context),
+                    icon: const Icon(
+                      Icons.close,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              const Text(
+                "Accept an invite to join the project instantly.",
+                style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+              ),
+              const SizedBox(height: 14),
+              if (loading)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 18),
+                  child: Center(child: CircularProgressIndicator()),
+                )
+              else if (state.invites.isEmpty)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface2,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: AppColors.border),
+                  ),
+                  child: const Text(
+                    "No pending invites",
+                    style: TextStyle(color: AppColors.textSecondary),
+                  ),
+                )
+              else
+                ListView.separated(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: state.invites.length,
+                  separatorBuilder: (_, __) => const SizedBox(height: 10),
+                  itemBuilder: (context, i) {
+                    final inv = state.invites[i];
+                    final accepting = state.acceptingToken == inv.token;
+
+                    final dynamic any = inv as dynamic;
+                    final String projectName = (any.projectName ?? "")
+                        .toString();
+                    final String invitedByEmail = (any.invitedByEmail ?? "")
+                        .toString();
+
+                    return Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: AppColors.border),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: AppColors.surface2,
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(color: AppColors.border),
+                            ),
+                            child: const Icon(
+                              Icons.folder_open,
+                              color: AppColors.textSecondary,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  projectName.isEmpty
+                                      ? "Project invite"
+                                      : projectName,
+                                  style: const TextStyle(
+                                    color: AppColors.textPrimary,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+                                Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.person_outline,
+                                      size: 16,
+                                      color: AppColors.textSecondary,
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Expanded(
+                                      child: Text(
+                                        invitedByEmail.isEmpty
+                                            ? "Invited by: (unknown)"
+                                            : "Invited by: $invitedByEmail",
+                                        style: const TextStyle(
+                                          color: AppColors.textSecondary,
+                                          fontSize: 12,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 6),
+                                Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.schedule,
+                                      size: 16,
+                                      color: AppColors.textSecondary,
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      "Expires: ${_fmtDate(inv.expiresAt)}",
+                                      style: const TextStyle(
+                                        color: AppColors.textSecondary,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          SizedBox(
+                            height: 40,
+                            child: ElevatedButton(
+                              onPressed: accepting
+                                  ? null
+                                  : () {
+                                      context.read<InvitesBloc>().add(
+                                        InvitesAcceptRequested(inv.token),
+                                      );
+                                    },
+                              child: accepting
+                                  ? const SizedBox(
+                                      height: 16,
+                                      width: 16,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : const Text("Accept"),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}

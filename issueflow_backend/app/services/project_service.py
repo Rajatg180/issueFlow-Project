@@ -1,7 +1,10 @@
 from __future__ import annotations
 from datetime import datetime
 from sqlmodel import Session, select
-
+from app.models.project_member import ProjectMember, ProjectRole
+from app.models.project_invite import ProjectInvite
+from app.models.project import Project
+from app.models.project_favorite import ProjectFavorite
 from app.models.issue import Issue
 from app.models.project import Project
 from app.models.project_preference import ProjectPreference
@@ -29,6 +32,17 @@ def create_project(db: Session, owner: User, name: str, key: str, description: s
     db.commit()
     db.refresh(p)
 
+    # ✅ Owner becomes a member (role=owner)
+    owner_member = ProjectMember(
+        project_id=p.id,
+        user_id=owner.id,
+        role=ProjectRole.owner,
+        created_at=datetime.utcnow(),
+    )
+    db.add(owner_member)
+    db.commit()
+
+
     # ✅ Ensure preference row exists (default false/false)
     pref = ProjectPreference(
         user_id=owner.id,
@@ -45,12 +59,23 @@ def create_project(db: Session, owner: User, name: str, key: str, description: s
 
 
 def list_projects(db: Session, owner: User) -> list[tuple[Project, ProjectPreference | None]]:
-    """
-    Return list of (Project, Preference) tuples.
-    - If pref missing for old rows, preference will be None.
-    """
-    projects = list(db.exec(select(Project).where(Project.owner_id == owner.id)).all())
+    # owner projects
+    owned = list(db.exec(select(Project).where(Project.owner_id == owner.id)).all())
 
+    # member projects
+    memberships = list(db.exec(select(ProjectMember).where(ProjectMember.user_id == owner.id)).all())
+    member_project_ids = [m.project_id for m in memberships]
+
+    member_projects: list[Project] = []
+    if member_project_ids:
+        member_projects = list(db.exec(select(Project).where(Project.id.in_(member_project_ids))).all())
+
+    # merge unique
+    proj_map = {p.id: p for p in owned}
+    for p in member_projects:
+        proj_map.setdefault(p.id, p)
+
+    projects = list(proj_map.values())
     if not projects:
         return []
 
@@ -68,6 +93,7 @@ def list_projects(db: Session, owner: User) -> list[tuple[Project, ProjectPrefer
     return [(p, pref_map.get(p.id)) for p in projects]
 
 
+
 def update_project_preference(
     db: Session,
     owner: User,
@@ -79,9 +105,19 @@ def update_project_preference(
     if not project:
         raise ValueError("Project not found")
 
-    if project.owner_id != owner.id:
+    # ✅ ACCESS: allow owner OR member
+    is_owner = project.owner_id == owner.id
+    is_member = db.exec(
+        select(ProjectMember).where(
+            ProjectMember.project_id == project.id,
+            ProjectMember.user_id == owner.id,
+        )
+    ).first() is not None
+
+    if not (is_owner or is_member):
         raise ValueError("You do not have access to this project")
 
+    # ✅ preference is per-user-per-project
     pref = db.exec(
         select(ProjectPreference).where(
             ProjectPreference.user_id == owner.id,
@@ -89,7 +125,7 @@ def update_project_preference(
         )
     ).first()
 
-    # ✅ handle old projects that don't have pref row yet
+    # ✅ create if missing
     if not pref:
         pref = ProjectPreference(
             user_id=owner.id,
@@ -103,6 +139,7 @@ def update_project_preference(
         db.commit()
         db.refresh(pref)
 
+    # ✅ apply updates
     if is_favorite is not None:
         pref.is_favorite = is_favorite
     if is_pinned is not None:
@@ -123,19 +160,62 @@ def delete_project(db: Session, project_id: str, owner: User) -> None:
     if project.owner_id != owner.id:
         raise ValueError("You do not have access to this project")
 
-    # delete issues
+    # -----------------------------
+    # 1) Delete issues + their children (if any)
+    # -----------------------------
     issues = list(db.exec(select(Issue).where(Issue.project_id == project.id)).all())
-    for i in issues:
-        db.delete(i)
 
-    pref = db.exec(
-        select(ProjectPreference).where(
-            ProjectPreference.user_id == owner.id,
-            ProjectPreference.project_id == project.id,
+    # If you have issue children tables, delete them first:
+    # for issue in issues:
+    #     comments = list(db.exec(select(IssueComment).where(IssueComment.issue_id == issue.id)).all())
+    #     for c in comments:
+    #         db.delete(c)
+    #     attachments = list(db.exec(select(IssueAttachment).where(IssueAttachment.issue_id == issue.id)).all())
+    #     for a in attachments:
+    #         db.delete(a)
+
+    for issue in issues:
+        db.delete(issue)
+
+    # -----------------------------
+    # 2) Delete project invites
+    # -----------------------------
+    invites = list(db.exec(select(ProjectInvite).where(ProjectInvite.project_id == project.id)).all())
+    for inv in invites:
+        db.delete(inv)
+
+    # -----------------------------
+    # 3) Delete project members (membership rows)
+    # -----------------------------
+    members = list(db.exec(select(ProjectMember).where(ProjectMember.project_id == project.id)).all())
+    for m in members:
+        db.delete(m)
+
+    # -----------------------------
+    # 4) Delete preferences (pin/fav etc.)
+    #    If your pref table is per-user per-project, delete all rows for project
+    # -----------------------------
+    prefs = list(
+        db.exec(select(ProjectPreference).where(ProjectPreference.project_id == project.id)).all()
+    )
+    for p in prefs:
+        db.delete(p)
+
+    # -----------------------------
+    # 5) If you have ProjectFavorite separately, delete those too
+    # -----------------------------
+    try:
+        favs = list(
+            db.exec(select(ProjectFavorite).where(ProjectFavorite.project_id == project.id)).all()
         )
-    ).first()
-    if pref:
-        db.delete(pref)
+        for f in favs:
+            db.delete(f)
+    except Exception:
+        # ignore if table not in your project
+        pass
 
+    # -----------------------------
+    # 6) Finally delete project
+    # -----------------------------
     db.delete(project)
     db.commit()

@@ -6,6 +6,8 @@ import app.models.user  # noqa: F401
 import app.models.refresh_token  # noqa: F401
 import app.models.project
 import app.models.issue
+import app.models.project_member  # noqa: F401
+import app.models.project_invite  # noqa: F401
 
 
 def init_db():

@@ -2,7 +2,7 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session
 from datetime import datetime
-
+from app.services.invite_service import invite_members
 from app.core.deps import get_current_user
 from app.db.session import get_db
 from app.models.user import User
@@ -34,6 +34,11 @@ def setup(
             key=payload.project.key,
             description=payload.project.description,
         )
+
+        # Step 2: Invite members (NOW REAL)
+        if payload.invites:
+            invite_members(db=db, project=project, inviter=user, emails=payload.invites)
+
 
         # Step 3: create first issue
         first_issue = create_issue(

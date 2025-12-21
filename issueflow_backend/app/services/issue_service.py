@@ -1,7 +1,7 @@
 from __future__ import annotations
 from datetime import date, datetime
 from sqlmodel import Session, select
-
+from app.models.project_member import ProjectMember
 from app.models.issue import Issue, IssuePriority, IssueType
 from app.models.project import Project
 from app.models.user import User
@@ -36,12 +36,22 @@ def create_issue(
     """
     # Load project
     project = db.exec(select(Project).where(Project.id == project_id)).first()
+
+
     if not project:
         raise ValueError("Project not found")
 
     # Optional: enforce owner-only access in v1
     if project.owner_id != reporter.id:
-        raise ValueError("You do not have access to this project")
+        m = db.exec(
+            select(ProjectMember).where(
+                ProjectMember.project_id == project.id,
+                ProjectMember.user_id == reporter.id,
+            )
+        ).first()
+        if not m:
+            raise ValueError("You do not have access to this project")
+
 
     # Generate issue key
     issue_key = _next_issue_key(project)
@@ -76,6 +86,14 @@ def list_issues(db: Session, project_id, current_user: User) -> list[Issue]:
         raise ValueError("Project not found")
 
     if project.owner_id != current_user.id:
-        raise ValueError("You do not have access to this project")
+        m = db.exec(
+            select(ProjectMember).where(
+                ProjectMember.project_id == project.id,
+                ProjectMember.user_id == current_user.id,
+            )
+        ).first()
+        if not m:
+            raise ValueError("You do not have access to this project")
+
 
     return list(db.exec(select(Issue).where(Issue.project_id == project_id)).all())

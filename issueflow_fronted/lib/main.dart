@@ -2,8 +2,11 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:issueflow_fronted/features/onboarding/presentation/bloc/onboarding_bloc.dart';
+import 'package:issueflow_fronted/features/projects/presentation/bloc/invite/invites_bloc.dart';
+import 'package:issueflow_fronted/features/projects/presentation/cubit/invite_members_cubit.dart';
 import 'package:issueflow_fronted/firebase_options.dart';
-import 'features/projects/presentation/bloc/projects_bloc.dart';
+
+import 'features/projects/presentation/bloc/project/projects_bloc.dart';
 import 'core/di/service_locator.dart';
 import 'core/routing/app_gate.dart';
 import 'core/theme/app_theme.dart';
@@ -11,13 +14,14 @@ import 'features/auth/presentation/bloc/auth_bloc.dart';
 import 'features/auth/presentation/bloc/auth_event.dart';
 import 'features/shell/presentation/bloc/shell_bloc.dart';
 
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-   await Firebase.initializeApp(
+  await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  
+
   await setupServiceLocator();
   runApp(const IssueFlowApp());
 }
@@ -33,8 +37,10 @@ class IssueFlowApp extends StatelessWidget {
           create: (_) => sl<AuthBloc>()..add(const AuthAppStarted()),
         ),
         BlocProvider(create: (_) => ShellBloc()),
-        BlocProvider(create: (_)=> sl<OnboardingBloc>()),
+        BlocProvider(create: (_) => sl<OnboardingBloc>()),
         BlocProvider(create: (_) => sl<ProjectsBloc>()),
+        BlocProvider(create: (_) => sl<InvitesBloc>()),
+        BlocProvider(create: (_) => sl<InviteMembersCubit>()),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,

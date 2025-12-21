@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import '../../domain/entities/project_entity.dart';
+import '../../../domain/entities/project_entity.dart';
 
 class ProjectsState extends Equatable {
   final bool loading;

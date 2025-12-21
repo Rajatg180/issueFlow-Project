@@ -1,10 +1,10 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../domain/entities/project_entity.dart';
-import '../../domain/usecases/create_project_usecase.dart';
-import '../../domain/usecases/delete_project_usecase.dart';
-import '../../domain/usecases/list_projects_usecase.dart';
-import '../../domain/usecases/update_project_preference_usecase.dart';
+import '../../../domain/entities/project_entity.dart';
+import '../../../domain/usecases/create_project_usecase.dart';
+import '../../../domain/usecases/delete_project_usecase.dart';
+import '../../../domain/usecases/list_projects_usecase.dart';
+import '../../../domain/usecases/update_project_preference_usecase.dart';
 import 'projects_event.dart';
 import 'projects_state.dart';
 

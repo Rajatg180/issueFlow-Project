@@ -1,6 +1,8 @@
 import '../../domain/entities/project_entity.dart';
 import '../../domain/repositories/projects_repository.dart';
 import '../datasources/projects_remote_datasource.dart';
+import '../../domain/entities/invite_entity.dart';
+import '../datasources/projects_remote_datasource.dart';
 
 class ProjectsRepositoryImpl implements ProjectsRepository {
   final ProjectsRemoteDataSource remote;
