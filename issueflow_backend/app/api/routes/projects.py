@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
+
 from app.core.deps import get_current_user
 from app.db.session import get_db
 from app.models.user import User
@@ -7,19 +8,26 @@ from app.schemas.project import (
     ProjectCreateRequest,
     ProjectResponse,
     ProjectPreferenceUpdateRequest,
+    ProjectUpdateRequest,
 )
 from app.services.project_service import (
     create_project,
     delete_project,
     list_projects,
+    update_project,
     update_project_preference,
 )
+from app.models.project_member import ProjectRole
 
 router = APIRouter(prefix="/projects", tags=["Projects"])
 
 
 @router.post("", response_model=ProjectResponse)
-def create(payload: ProjectCreateRequest, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+def create(
+    payload: ProjectCreateRequest,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
     try:
         p = create_project(db, owner=user, name=payload.name, key=payload.key, description=payload.description)
         return ProjectResponse(
@@ -30,6 +38,7 @@ def create(payload: ProjectCreateRequest, db: Session = Depends(get_db), user: U
             created_at=p.created_at,
             is_favorite=False,
             is_pinned=False,
+            role=ProjectRole.owner,
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -39,18 +48,18 @@ def create(payload: ProjectCreateRequest, db: Session = Depends(get_db), user: U
 def list_all(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     rows = list_projects(db, owner=user)
 
-    # Optional Jira-like ordering: pinned first, then favorites, then recent created
     def sort_key(item):
         p, pref = item
         is_pinned = (pref.is_pinned if pref else False)
         is_fav = (pref.is_favorite if pref else False)
-        created = p.created_at or 0
-        return (not is_pinned, not is_fav, -(created.timestamp() if p.created_at else 0))
+        return (not is_pinned, not is_fav, -(p.created_at.timestamp() if p.created_at else 0))
 
     rows.sort(key=sort_key)
 
     out: list[ProjectResponse] = []
     for p, pref in rows:
+        role = ProjectRole.owner if p.owner_id == user.id else ProjectRole.member
+
         out.append(
             ProjectResponse(
                 id=str(p.id),
@@ -60,6 +69,7 @@ def list_all(db: Session = Depends(get_db), user: User = Depends(get_current_use
                 created_at=p.created_at,
                 is_favorite=(pref.is_favorite if pref else False),
                 is_pinned=(pref.is_pinned if pref else False),
+                role=role,
             )
         )
     return out
@@ -81,11 +91,10 @@ def update_preference(
             is_pinned=payload.is_pinned,
         )
 
-        # return updated project view
-        # (safe: project exists because service validated)
-        # NOTE: if you want, you can fetch project once here; minimal extra query:
         from app.models.project import Project
         project = db.exec(select(Project).where(Project.id == project_id)).first()
+
+        role = ProjectRole.owner if project.owner_id == user.id else ProjectRole.member
 
         return ProjectResponse(
             id=str(project.id),
@@ -95,6 +104,7 @@ def update_preference(
             created_at=project.created_at,
             is_favorite=pref.is_favorite,
             is_pinned=pref.is_pinned,
+            role=role,
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
@@ -105,5 +115,48 @@ def remove(project_id: str, db: Session = Depends(get_db), user: User = Depends(
     try:
         delete_project(db=db, project_id=project_id, owner=user)
         return {"status": "ok"}
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+# ✅ NEW: Edit project
+@router.patch("/{project_id}", response_model=ProjectResponse)
+def edit_project(
+    project_id: str,
+    payload: ProjectUpdateRequest,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    try:
+        p = update_project(
+            db=db,
+            owner=user,
+            project_id=project_id,
+            name=payload.name,
+            key=payload.key,
+            description=payload.description,
+        )
+
+        # preference info (keep your existing style)
+        from app.models.project_preference import ProjectPreference  # if you have it
+        pref = db.exec(
+            select(ProjectPreference).where(
+                ProjectPreference.project_id == p.id,
+                ProjectPreference.user_id == user.id,
+            )
+        ).first()
+
+        role = ProjectRole.owner if str(p.owner_id) == str(user.id) else ProjectRole.member
+
+        return ProjectResponse(
+            id=str(p.id),
+            name=p.name,
+            key=p.key,
+            description=p.description,
+            created_at=p.created_at,
+            is_favorite=(pref.is_favorite if pref else False),
+            is_pinned=(pref.is_pinned if pref else False),
+            role=role,
+        )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))

@@ -167,6 +167,10 @@ class _ProjectsPageState extends State<ProjectsPage> {
                         creating: state.creating,
                         deletingId: state.deletingId,
                         updatingPrefId: state.updatingPrefId,
+
+                        // ✅ NEW (for edit loading state)
+                        editingId: state.editingId,
+
                         hasSearch: _query.isNotEmpty,
                         filteredCount: items.length,
                         allCount: state.items.length,
@@ -307,7 +311,11 @@ class _HeaderState extends State<_Header> {
             IconButton(
               tooltip: "Close search",
               onPressed: _closeSearch,
-              icon: const Icon(Icons.close, color: AppColors.textSecondary, size: 18),
+              icon: const Icon(
+                Icons.close,
+                color: AppColors.textSecondary,
+                size: 18,
+              ),
             ),
             Expanded(
               child: TextField(
@@ -325,7 +333,11 @@ class _HeaderState extends State<_Header> {
               IconButton(
                 tooltip: "Clear",
                 onPressed: () => widget.searchCtrl.clear(),
-                icon: const Icon(Icons.backspace_outlined, color: AppColors.textSecondary, size: 18),
+                icon: const Icon(
+                  Icons.backspace_outlined,
+                  color: AppColors.textSecondary,
+                  size: 18,
+                ),
               ),
           ],
         ),
@@ -352,7 +364,10 @@ class _HeaderState extends State<_Header> {
           final title = Row(
             mainAxisSize: MainAxisSize.min,
             children: const [
-              Icon(Icons.dashboard_customize_outlined, color: AppColors.textSecondary),
+              Icon(
+                Icons.dashboard_customize_outlined,
+                color: AppColors.textSecondary,
+              ),
               SizedBox(width: 10),
               _HeaderTitle(),
             ],
@@ -381,7 +396,10 @@ class _HeaderState extends State<_Header> {
                         _squareButton(
                           tooltip: "Invites",
                           onTap: widget.onInvites,
-                          child: _bellWithBadge(hasInvites: hasInvites, count: widget.invitesCount),
+                          child: _bellWithBadge(
+                            hasInvites: hasInvites,
+                            count: widget.invitesCount,
+                          ),
                         ),
                         const SizedBox(width: 8),
                         _squareButton(
@@ -389,7 +407,9 @@ class _HeaderState extends State<_Header> {
                           onTap: widget.creating ? null : widget.onCreate,
                           child: Icon(
                             Icons.add,
-                            color: widget.creating ? AppColors.textSecondary : AppColors.textPrimary,
+                            color: widget.creating
+                                ? AppColors.textSecondary
+                                : AppColors.textPrimary,
                           ),
                         ),
                       ],
@@ -415,7 +435,9 @@ class _HeaderState extends State<_Header> {
                   child: Align(
                     alignment: Alignment.centerRight,
                     child: SizedBox(
-                      width: isNarrow ? double.infinity : (_searchOpen ? 340 : 44),
+                      width: isNarrow
+                          ? double.infinity
+                          : (_searchOpen ? 340 : 44),
                       height: 44,
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 180),
@@ -429,7 +451,8 @@ class _HeaderState extends State<_Header> {
                           children: [
                             IconButton(
                               tooltip: _searchOpen ? "Close search" : "Search",
-                              onPressed: _searchOpen ? _closeSearch : _openSearch,
+                              onPressed:
+                                  _searchOpen ? _closeSearch : _openSearch,
                               icon: Icon(
                                 _searchOpen ? Icons.close : Icons.search,
                                 color: AppColors.textSecondary,
@@ -471,7 +494,10 @@ class _HeaderState extends State<_Header> {
                   height: 44,
                   child: OutlinedButton.icon(
                     onPressed: widget.onInvites,
-                    icon: _bellWithBadge(hasInvites: hasInvites, count: widget.invitesCount),
+                    icon: _bellWithBadge(
+                      hasInvites: hasInvites,
+                      count: widget.invitesCount,
+                    ),
                     label: const Text("Project invites"),
                   ),
                 ),
@@ -559,6 +585,7 @@ class _Body extends StatelessWidget {
     required this.creating,
     required this.deletingId,
     required this.updatingPrefId,
+    required this.editingId, // ✅ NEW
     required this.hasSearch,
     required this.filteredCount,
     required this.allCount,
@@ -570,6 +597,7 @@ class _Body extends StatelessWidget {
   final bool creating;
   final String? deletingId;
   final String? updatingPrefId;
+  final String? editingId; // ✅ NEW
 
   final bool hasSearch;
   final int filteredCount;
@@ -621,8 +649,9 @@ class _Body extends StatelessWidget {
                 isPinned: p.isPinned,
                 isDeleting: deletingId == p.id,
                 isUpdatingPref: updatingPrefId == p.id,
-                onTap: () =>
-                    AppToast.show(context, message: "Selected ${p.key}"),
+                isEditing: editingId == p.id, // ✅ NEW
+                role: p.role,
+                onTap: () => AppToast.show(context, message: "Selected ${p.key}"),
               );
             },
           ),
@@ -643,7 +672,9 @@ class _ProjectTile extends StatelessWidget {
     required this.isPinned,
     required this.isDeleting,
     required this.isUpdatingPref,
+    required this.isEditing, // ✅ NEW
     required this.onTap,
+    required this.role,
   });
 
   final String id;
@@ -653,9 +684,10 @@ class _ProjectTile extends StatelessWidget {
   final DateTime createdAt;
   final bool isFavorite;
   final bool isPinned;
-
+  final String role;
   final bool isDeleting;
   final bool isUpdatingPref;
+  final bool isEditing; // ✅ NEW
   final VoidCallback onTap;
 
   String _createdLabel(DateTime d) {
@@ -703,10 +735,10 @@ class _ProjectTile extends StatelessWidget {
   }
 
   void _toggleFavorite(BuildContext context) {
-    if (isUpdatingPref || isDeleting) return;
+    if (isUpdatingPref || isDeleting || isEditing) return;
     context.read<ProjectsBloc>().add(
-      ProjectsFavoriteToggled(projectId: id, value: !isFavorite),
-    );
+          ProjectsFavoriteToggled(projectId: id, value: !isFavorite),
+        );
     AppToast.show(
       context,
       message: !isFavorite ? "Added to favorites" : "Removed from favorites",
@@ -714,10 +746,10 @@ class _ProjectTile extends StatelessWidget {
   }
 
   void _togglePin(BuildContext context) {
-    if (isUpdatingPref || isDeleting) return;
+    if (isUpdatingPref || isDeleting || isEditing) return;
     context.read<ProjectsBloc>().add(
-      ProjectsPinnedToggled(projectId: id, value: !isPinned),
-    );
+          ProjectsPinnedToggled(projectId: id, value: !isPinned),
+        );
     AppToast.show(
       context,
       message: !isPinned ? "Pinned to sidebar" : "Unpinned",
@@ -725,7 +757,7 @@ class _ProjectTile extends StatelessWidget {
   }
 
   Future<void> _openInviteMembers(BuildContext context) async {
-    if (isUpdatingPref || isDeleting) return;
+    if (isUpdatingPref || isDeleting || isEditing) return;
 
     InviteMembersCubit? cubit;
     try {
@@ -778,9 +810,45 @@ class _ProjectTile extends StatelessWidget {
     );
   }
 
+  // ✅ NEW: EDIT PROJECT OPEN (DIALOG/SHEET)
+  Future<void> _openEditProject(BuildContext context) async {
+    if (isUpdatingPref || isDeleting || isEditing) return;
+
+    final isMobile = Responsive.isMobile(context);
+
+    if (isMobile) {
+      await showModalBottomSheet(
+        context: context,
+        isScrollControlled: true,
+        backgroundColor: AppColors.surface,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+        ),
+        builder: (_) => _EditProjectSheet(
+          projectId: id,
+          initialName: name,
+          initialKey: keyText,
+          initialDescription: description,
+        ),
+      );
+      return;
+    }
+
+    await showDialog(
+      context: context,
+      builder: (_) => _EditProjectDialog(
+        projectId: id,
+        initialName: name,
+        initialKey: keyText,
+        initialDescription: description,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final disabled = isDeleting || isUpdatingPref;
+    final disabled = isDeleting || isUpdatingPref || isEditing;
+    final canManage = role == "owner"; // ✅ ONLY OWNER CAN INVITE/DELETE/EDIT
 
     return LayoutBuilder(
       builder: (context, c) {
@@ -796,18 +864,32 @@ class _ProjectTile extends StatelessWidget {
           ),
         );
 
+        // ✅ INLINE ACTIONS
         Widget rightActionsInline() {
           return Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              IconButton(
-                tooltip: "Invite members",
-                onPressed: disabled ? null : () => _openInviteMembers(context),
-                icon: const Icon(
-                  Icons.person_add_alt_1,
-                  color: AppColors.textSecondary,
+              if (canManage)
+                IconButton(
+                  tooltip: "Invite members",
+                  onPressed: disabled ? null : () => _openInviteMembers(context),
+                  icon: const Icon(
+                    Icons.person_add_alt_1,
+                    color: AppColors.textSecondary,
+                  ),
                 ),
-              ),
+
+              // ✅ NEW: edit icon (owner only)
+              if (canManage)
+                IconButton(
+                  tooltip: "Edit project",
+                  onPressed: disabled ? null : () => _openEditProject(context),
+                  icon: const Icon(
+                    Icons.edit_outlined,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+
               IconButton(
                 tooltip: isPinned ? "Unpin" : "Pin",
                 onPressed: disabled ? null : () => _togglePin(context),
@@ -832,24 +914,51 @@ class _ProjectTile extends StatelessWidget {
                 ),
                 onSelected: (v) {
                   if (v == "invite") _openInviteMembers(context);
+                  if (v == "edit") _openEditProject(context);
                   if (v == "delete") _confirmDelete(context);
+                  if (v == "fav") _toggleFavorite(context);
+                  if (v == "pin") _togglePin(context);
                 },
-                itemBuilder: (_) => const [
-                  PopupMenuItem(
-                    value: "invite",
+                itemBuilder: (_) => [
+                  if (canManage)
+                    const PopupMenuItem(
+                      value: "invite",
+                      child: Text(
+                        "Invite members",
+                        style: TextStyle(color: AppColors.textPrimary),
+                      ),
+                    ),
+                  if (canManage)
+                    const PopupMenuItem(
+                      value: "edit",
+                      child: Text(
+                        "Edit project",
+                        style: TextStyle(color: AppColors.textPrimary),
+                      ),
+                    ),
+                  const PopupMenuItem(
+                    value: "pin",
                     child: Text(
-                      "Invite members",
+                      "Pin/Unpin",
                       style: TextStyle(color: AppColors.textPrimary),
                     ),
                   ),
-                  PopupMenuDivider(),
-                  PopupMenuItem(
-                    value: "delete",
+                  const PopupMenuItem(
+                    value: "fav",
                     child: Text(
-                      "Delete",
+                      "Favorite/Unfavorite",
                       style: TextStyle(color: AppColors.textPrimary),
                     ),
                   ),
+                  if (canManage) const PopupMenuDivider(),
+                  if (canManage)
+                    const PopupMenuItem(
+                      value: "delete",
+                      child: Text(
+                        "Delete",
+                        style: TextStyle(color: AppColors.textPrimary),
+                      ),
+                    ),
                 ],
                 child: const Padding(
                   padding: EdgeInsets.only(top: 2),
@@ -860,6 +969,7 @@ class _ProjectTile extends StatelessWidget {
           );
         }
 
+        // ✅ MENU ONLY ACTIONS
         Widget rightActionsMenuOnly() {
           return PopupMenuButton<String>(
             tooltip: "Actions",
@@ -869,28 +979,48 @@ class _ProjectTile extends StatelessWidget {
             ),
             onSelected: (v) {
               if (v == "invite") _openInviteMembers(context);
+              if (v == "edit") _openEditProject(context);
               if (v == "fav") _toggleFavorite(context);
               if (v == "pin") _togglePin(context);
               if (v == "delete") _confirmDelete(context);
             },
             itemBuilder: (_) => [
-              const PopupMenuItem(
-                value: "invite",
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.person_add_alt_1,
-                      size: 18,
-                      color: AppColors.textSecondary,
-                    ),
-                    SizedBox(width: 10),
-                    Text(
-                      "Invite members",
-                      style: TextStyle(color: AppColors.textPrimary),
-                    ),
-                  ],
+              if (canManage)
+                const PopupMenuItem(
+                  value: "invite",
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.person_add_alt_1,
+                        size: 18,
+                        color: AppColors.textSecondary,
+                      ),
+                      SizedBox(width: 10),
+                      Text(
+                        "Invite members",
+                        style: TextStyle(color: AppColors.textPrimary),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
+              if (canManage)
+                const PopupMenuItem(
+                  value: "edit",
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.edit_outlined,
+                        size: 18,
+                        color: AppColors.textSecondary,
+                      ),
+                      SizedBox(width: 10),
+                      Text(
+                        "Edit project",
+                        style: TextStyle(color: AppColors.textPrimary),
+                      ),
+                    ],
+                  ),
+                ),
               PopupMenuItem(
                 value: "pin",
                 child: Row(
@@ -915,9 +1045,7 @@ class _ProjectTile extends StatelessWidget {
                     Icon(
                       isFavorite ? Icons.star : Icons.star_border,
                       size: 18,
-                      color: isFavorite
-                          ? Colors.amber
-                          : AppColors.textSecondary,
+                      color: isFavorite ? Colors.amber : AppColors.textSecondary,
                     ),
                     const SizedBox(width: 10),
                     Text(
@@ -927,24 +1055,25 @@ class _ProjectTile extends StatelessWidget {
                   ],
                 ),
               ),
-              const PopupMenuDivider(),
-              const PopupMenuItem(
-                value: "delete",
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.delete_outline,
-                      size: 18,
-                      color: Color(0xFFEF4444),
-                    ),
-                    SizedBox(width: 10),
-                    Text(
-                      "Delete",
-                      style: TextStyle(color: AppColors.textPrimary),
-                    ),
-                  ],
+              if (canManage) const PopupMenuDivider(),
+              if (canManage)
+                const PopupMenuItem(
+                  value: "delete",
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.delete_outline,
+                        size: 18,
+                        color: Color(0xFFEF4444),
+                      ),
+                      SizedBox(width: 10),
+                      Text(
+                        "Delete",
+                        style: TextStyle(color: AppColors.textPrimary),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
             ],
             child: const Padding(
               padding: EdgeInsets.only(top: 2),
@@ -1045,7 +1174,7 @@ class _ProjectTile extends StatelessWidget {
                                 ),
                               ),
                               const SizedBox(width: 8),
-                              if (isDeleting)
+                              if (isDeleting || isEditing)
                                 const SizedBox(
                                   height: 20,
                                   width: 20,
@@ -1072,6 +1201,245 @@ class _ProjectTile extends StatelessWidget {
         );
       },
     );
+  }
+}
+
+// ========================
+// ✅ NEW EDIT PROJECT UI
+// ========================
+
+class _EditProjectDialog extends StatelessWidget {
+  const _EditProjectDialog({
+    required this.projectId,
+    required this.initialName,
+    required this.initialKey,
+    required this.initialDescription,
+  });
+
+  final String projectId;
+  final String initialName;
+  final String initialKey;
+  final String? initialDescription;
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: AppColors.surface,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 520),
+        child: _EditProjectForm(
+          projectId: projectId,
+          initialName: initialName,
+          initialKey: initialKey,
+          initialDescription: initialDescription,
+          isBottomSheet: false,
+        ),
+      ),
+    );
+  }
+}
+
+class _EditProjectSheet extends StatelessWidget {
+  const _EditProjectSheet({
+    required this.projectId,
+    required this.initialName,
+    required this.initialKey,
+    required this.initialDescription,
+  });
+
+  final String projectId;
+  final String initialName;
+  final String initialKey;
+  final String? initialDescription;
+
+  @override
+  Widget build(BuildContext context) {
+    final inset = MediaQuery.of(context).viewInsets.bottom;
+    return Padding(
+      padding: EdgeInsets.only(bottom: inset),
+      child: SafeArea(
+        top: false,
+        child: _EditProjectForm(
+          projectId: projectId,
+          initialName: initialName,
+          initialKey: initialKey,
+          initialDescription: initialDescription,
+          isBottomSheet: true,
+        ),
+      ),
+    );
+  }
+}
+
+class _EditProjectForm extends StatefulWidget {
+  const _EditProjectForm({
+    required this.projectId,
+    required this.initialName,
+    required this.initialKey,
+    required this.initialDescription,
+    required this.isBottomSheet,
+  });
+
+  final String projectId;
+  final String initialName;
+  final String initialKey;
+  final String? initialDescription;
+  final bool isBottomSheet;
+
+  @override
+  State<_EditProjectForm> createState() => _EditProjectFormState();
+}
+
+class _EditProjectFormState extends State<_EditProjectForm> {
+  final _formKey = GlobalKey<FormState>();
+  late final TextEditingController _nameCtrl;
+  late final TextEditingController _keyCtrl;
+  late final TextEditingController _descCtrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameCtrl = TextEditingController(text: widget.initialName);
+    _keyCtrl = TextEditingController(text: widget.initialKey);
+    _descCtrl = TextEditingController(text: widget.initialDescription ?? "");
+  }
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _keyCtrl.dispose();
+    _descCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isMobile = Responsive.isMobile(context);
+
+    return SingleChildScrollView(
+      padding: EdgeInsets.fromLTRB(
+        16,
+        16,
+        16,
+        widget.isBottomSheet ? 16 : 18,
+      ),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Text(
+                  "Edit project",
+                  style: TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const Spacer(),
+                IconButton(
+                  tooltip: "Close",
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close, color: AppColors.textSecondary),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              "Update name, key, or description.",
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+            ),
+            const SizedBox(height: 14),
+            const _FieldLabel("Name"),
+            const SizedBox(height: 6),
+            TextFormField(
+              controller: _nameCtrl,
+              decoration: const InputDecoration(hintText: "Project name"),
+              validator: (v) =>
+                  (v == null || v.trim().isEmpty) ? "Name is required" : null,
+              textInputAction: TextInputAction.next,
+            ),
+            const SizedBox(height: 12),
+            const _FieldLabel("Key"),
+            const SizedBox(height: 6),
+            TextFormField(
+              controller: _keyCtrl,
+              textCapitalization: TextCapitalization.characters,
+              decoration: const InputDecoration(hintText: "e.g. IF"),
+              validator: (v) {
+                final val = (v ?? "").trim();
+                if (val.isEmpty) return "Key is required";
+                if (val.length < 2) return "Min 2 characters";
+                if (val.length > 10) return "Max 10 characters";
+                return null;
+              },
+              textInputAction: TextInputAction.next,
+            ),
+            const SizedBox(height: 12),
+            const _FieldLabel("Description (optional)"),
+            const SizedBox(height: 6),
+            TextFormField(
+              controller: _descCtrl,
+              maxLines: 3,
+              decoration: const InputDecoration(hintText: "Short summary…"),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text("Cancel"),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: _submit,
+                    child: Text(isMobile ? "Save" : "Save changes"),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _submit() {
+    if (_formKey.currentState?.validate() != true) return;
+
+    final name = _nameCtrl.text.trim();
+    final key = _keyCtrl.text.trim();
+    final desc = _descCtrl.text.trim();
+
+    // send only changed fields (keeps backend patch clean)
+    final String? sendName = name != widget.initialName ? name : null;
+    final String? sendKey = key != widget.initialKey ? key : null;
+    final String? sendDesc = (desc != (widget.initialDescription ?? ""))
+        ? (desc.isEmpty ? "" : desc)
+        : null;
+
+    if (sendName == null && sendKey == null && sendDesc == null) {
+      Navigator.pop(context);
+      return;
+    }
+
+    context.read<ProjectsBloc>().add(
+          ProjectsEditRequested(
+            projectId: widget.projectId,
+            name: sendName,
+            key: sendKey,
+            description: sendDesc,
+          ),
+        );
+
+    Navigator.pop(context);
   }
 }
 
@@ -1370,9 +1738,9 @@ class _InviteMembersFormState extends State<_InviteMembersForm> {
                                 return;
                               }
                               context.read<InviteMembersCubit>().send(
-                                widget.projectId,
-                                _emails,
-                              );
+                                    widget.projectId,
+                                    _emails,
+                                  );
                             },
                       child: sending
                           ? const SizedBox(
@@ -1628,12 +1996,12 @@ class _CreateProjectFormState extends State<_CreateProjectForm> {
     final desc = _descCtrl.text.trim();
 
     context.read<ProjectsBloc>().add(
-      ProjectsCreateRequested(
-        name: name,
-        key: key,
-        description: desc.isEmpty ? null : desc,
-      ),
-    );
+          ProjectsCreateRequested(
+            name: name,
+            key: key,
+            description: desc.isEmpty ? null : desc,
+          ),
+        );
 
     Navigator.pop(context);
   }
@@ -1750,8 +2118,8 @@ class _InvitesContent extends StatelessWidget {
                     onPressed: loading
                         ? null
                         : () => context.read<InvitesBloc>().add(
-                            const InvitesFetchRequested(),
-                          ),
+                              const InvitesFetchRequested(),
+                            ),
                     icon: const Icon(
                       Icons.refresh,
                       color: AppColors.textSecondary,
@@ -1803,10 +2171,10 @@ class _InvitesContent extends StatelessWidget {
                     final accepting = state.acceptingToken == inv.token;
 
                     final dynamic any = inv as dynamic;
-                    final String projectName = (any.projectName ?? "")
-                        .toString();
-                    final String invitedByEmail = (any.invitedByEmail ?? "")
-                        .toString();
+                    final String projectName =
+                        (any.projectName ?? "").toString();
+                    final String invitedByEmail =
+                        (any.invitedByEmail ?? "").toString();
 
                     return Container(
                       padding: const EdgeInsets.all(14),
@@ -1898,8 +2266,8 @@ class _InvitesContent extends StatelessWidget {
                                   ? null
                                   : () {
                                       context.read<InvitesBloc>().add(
-                                        InvitesAcceptRequested(inv.token),
-                                      );
+                                            InvitesAcceptRequested(inv.token),
+                                          );
                                     },
                               child: accepting
                                   ? const SizedBox(

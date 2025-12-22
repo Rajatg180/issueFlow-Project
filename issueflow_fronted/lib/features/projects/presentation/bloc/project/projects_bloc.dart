@@ -5,6 +5,7 @@ import '../../../domain/usecases/create_project_usecase.dart';
 import '../../../domain/usecases/delete_project_usecase.dart';
 import '../../../domain/usecases/list_projects_usecase.dart';
 import '../../../domain/usecases/update_project_preference_usecase.dart';
+import '../../../domain/usecases/update_project_usecase.dart'; // ✅ NEW
 import 'projects_event.dart';
 import 'projects_state.dart';
 
@@ -12,27 +13,36 @@ class ProjectsBloc extends Bloc<ProjectsEvent, ProjectsState> {
   final ListProjectsUseCase listProjectsUseCase;
   final CreateProjectUseCase createProjectUseCase;
   final DeleteProjectUseCase deleteProjectUseCase;
+  final UpdateProjectPreferenceUseCase updateProjectPreferenceUseCase;
 
   // ✅ NEW
-  final UpdateProjectPreferenceUseCase updateProjectPreferenceUseCase;
+  final UpdateProjectUseCase updateProjectUseCase;
 
   ProjectsBloc({
     required this.listProjectsUseCase,
     required this.createProjectUseCase,
     required this.deleteProjectUseCase,
     required this.updateProjectPreferenceUseCase,
+    required this.updateProjectUseCase,
   }) : super(ProjectsState.initial()) {
     on<ProjectsFetchRequested>(_onFetch);
     on<ProjectsCreateRequested>(_onCreate);
     on<ProjectsDeleteRequested>(_onDelete);
-
-    // ✅ NEW
     on<ProjectsFavoriteToggled>(_onToggleFavorite);
     on<ProjectsPinnedToggled>(_onTogglePinned);
+
+    // ✅ NEW
+    on<ProjectsEditRequested>(_onEdit);
   }
 
   Future<void> _onFetch(ProjectsFetchRequested event, Emitter<ProjectsState> emit) async {
-    emit(state.copyWith(loading: true, error: null, deletingId: null, updatingPrefId: null));
+    emit(state.copyWith(
+      loading: true,
+      error: null,
+      deletingId: null,
+      updatingPrefId: null,
+      editingId: null,
+    ));
     try {
       final items = await listProjectsUseCase();
       emit(state.copyWith(loading: false, items: _sorted(items), error: null));
@@ -77,7 +87,6 @@ class ProjectsBloc extends Bloc<ProjectsEvent, ProjectsState> {
       final merged = _replaceOne(state.items, updated);
       emit(state.copyWith(items: _sorted(merged), updatingPrefId: null, error: null));
     } catch (e) {
-      // revert
       emit(state.copyWith(items: _sorted(prev), updatingPrefId: null, error: _cleanErr(e)));
     }
   }
@@ -100,13 +109,30 @@ class ProjectsBloc extends Bloc<ProjectsEvent, ProjectsState> {
     }
   }
 
-  // ---------- helpers ----------
+  // ✅ NEW: edit project
+  Future<void> _onEdit(ProjectsEditRequested event, Emitter<ProjectsState> emit) async {
+    emit(state.copyWith(editingId: event.projectId, error: null));
+    try {
+      final updated = await updateProjectUseCase(
+        event.projectId,
+        name: event.name,
+        key: event.key,
+        description: event.description,
+      );
 
+      final merged = _replaceOne(state.items, updated);
+      emit(state.copyWith(items: _sorted(merged), editingId: null, error: null));
+    } catch (e) {
+      emit(state.copyWith(editingId: null, error: _cleanErr(e)));
+    }
+  }
+
+  // ---------- helpers ----------
   String _cleanErr(Object e) => e.toString().replaceFirst("Exception: ", "");
 
   List<ProjectEntity> _replaceOne(List<ProjectEntity> items, ProjectEntity updated) {
     return items.map((p) => p.id == updated.id ? updated : p).toList();
-  }
+    }
 
   List<ProjectEntity> _patchLocal(
     List<ProjectEntity> items,
@@ -116,8 +142,6 @@ class ProjectsBloc extends Bloc<ProjectsEvent, ProjectsState> {
     return items.map((p) => p.id == id ? fn(p) : p).toList();
   }
 
-  // Jira-like ordering:
-  // pinned first, then favorite, then newest created
   List<ProjectEntity> _sorted(List<ProjectEntity> items) {
     final sorted = [...items];
     sorted.sort((a, b) {

@@ -11,10 +11,17 @@ abstract class ProjectsRepository {
 
   Future<void> deleteProject(String projectId);
 
-  // ✅ New
   Future<ProjectEntity> updatePreference(
     String projectId, {
     bool? isFavorite,
     bool? isPinned,
+  });
+
+  // ✅ NEW: edit project
+  Future<ProjectEntity> updateProject(
+    String projectId, {
+    String? name,
+    String? key,
+    String? description,
   });
 }

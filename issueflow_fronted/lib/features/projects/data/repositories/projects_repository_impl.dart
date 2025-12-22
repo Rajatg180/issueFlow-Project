@@ -1,8 +1,6 @@
 import '../../domain/entities/project_entity.dart';
 import '../../domain/repositories/projects_repository.dart';
 import '../datasources/projects_remote_datasource.dart';
-import '../../domain/entities/invite_entity.dart';
-import '../datasources/projects_remote_datasource.dart';
 
 class ProjectsRepositoryImpl implements ProjectsRepository {
   final ProjectsRemoteDataSource remote;
@@ -33,6 +31,22 @@ class ProjectsRepositoryImpl implements ProjectsRepository {
       projectId,
       isFavorite: isFavorite,
       isPinned: isPinned,
+    );
+  }
+
+  // ✅ NEW
+  @override
+  Future<ProjectEntity> updateProject(
+    String projectId, {
+    String? name,
+    String? key,
+    String? description,
+  }) {
+    return remote.editProject(
+      projectId,
+      name: name,
+      key: key,
+      description: description,
     );
   }
 }

@@ -4,50 +4,60 @@ import '../../../domain/entities/project_entity.dart';
 class ProjectsState extends Equatable {
   final bool loading;
   final bool creating;
-  final String? deletingId;
-
-  // ✅ optional: show spinner on tile when toggling
-  final String? updatingPrefId;
+  final String? error;
 
   final List<ProjectEntity> items;
-  final String? error;
+
+  final String? deletingId;
+  final String? updatingPrefId;
+
+  // ✅ NEW
+  final String? editingId;
 
   const ProjectsState({
     required this.loading,
     required this.creating,
     required this.items,
+    this.error,
     this.deletingId,
     this.updatingPrefId,
-    this.error,
+    this.editingId,
   });
 
   factory ProjectsState.initial() => const ProjectsState(
         loading: false,
         creating: false,
         items: [],
-        deletingId: null,
-        updatingPrefId: null,
-        error: null,
       );
 
   ProjectsState copyWith({
     bool? loading,
     bool? creating,
     List<ProjectEntity>? items,
+    String? error,
     String? deletingId,
     String? updatingPrefId,
-    String? error,
+    String? editingId,
   }) {
     return ProjectsState(
       loading: loading ?? this.loading,
       creating: creating ?? this.creating,
       items: items ?? this.items,
+      error: error,
       deletingId: deletingId,
       updatingPrefId: updatingPrefId,
-      error: error,
+      editingId: editingId,
     );
   }
 
   @override
-  List<Object?> get props => [loading, creating, deletingId, updatingPrefId, items, error];
+  List<Object?> get props => [
+        loading,
+        creating,
+        error,
+        items,
+        deletingId,
+        updatingPrefId,
+        editingId,
+      ];
 }

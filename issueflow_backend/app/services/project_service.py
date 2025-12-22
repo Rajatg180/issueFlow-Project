@@ -1,5 +1,6 @@
 from __future__ import annotations
 from datetime import datetime
+from typing import Optional
 from sqlmodel import Session, select
 from app.models.project_member import ProjectMember, ProjectRole
 from app.models.project_invite import ProjectInvite
@@ -219,3 +220,42 @@ def delete_project(db: Session, project_id: str, owner: User) -> None:
     # -----------------------------
     db.delete(project)
     db.commit()
+
+
+def update_project(
+    db: Session,
+    owner: User,
+    project_id: str,
+    name: Optional[str] = None,
+    key: Optional[str] = None,
+    description: Optional[str] = None,
+) -> Project:
+    project = db.exec(select(Project).where(Project.id == project_id)).first()
+    if not project:
+        raise ValueError("Project not found")
+
+    # ✅ Only owner can edit
+    if str(project.owner_id) != str(owner.id):
+        raise ValueError("Only project owner can edit the project")
+
+    if name is not None:
+        n = name.strip()
+        if not n:
+            raise ValueError("Name cannot be empty")
+        project.name = n
+
+    if key is not None:
+        k = key.strip().upper()
+        if len(k) < 2 or len(k) > 10:
+            raise ValueError("Key must be between 2 and 10 characters")
+        project.key = k
+
+    # allow clearing description by passing ""
+    if description is not None:
+        d = description.strip()
+        project.description = d if d else None
+
+    db.add(project)
+    db.commit()
+    db.refresh(project)
+    return project

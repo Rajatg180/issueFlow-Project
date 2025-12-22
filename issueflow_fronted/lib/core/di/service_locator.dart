@@ -12,6 +12,7 @@ import 'package:issueflow_fronted/features/projects/domain/usecases/delete_proje
 import 'package:issueflow_fronted/features/projects/domain/usecases/invite_members_usecase.dart';
 import 'package:issueflow_fronted/features/projects/domain/usecases/list_my_invites_usecase.dart';
 import 'package:issueflow_fronted/features/projects/domain/usecases/update_project_preference_usecase.dart';
+import 'package:issueflow_fronted/features/projects/domain/usecases/update_project_usecase.dart';
 import 'package:issueflow_fronted/features/projects/presentation/bloc/invite/invites_bloc.dart';
 import 'package:issueflow_fronted/features/projects/presentation/cubit/invite_members_cubit.dart';
 
@@ -157,12 +158,14 @@ Future<void> setupServiceLocator() async {
   sl.registerLazySingleton<UpdateProjectPreferenceUseCase>(
     () => UpdateProjectPreferenceUseCase(sl<ProjectsRepository>()),
   );
+  sl.registerLazySingleton<UpdateProjectUseCase>(()=> UpdateProjectUseCase(sl<ProjectsRepository>()));
 
   // ---------------------------
   // PROJECTS - Bloc
   // ---------------------------
   sl.registerFactory<ProjectsBloc>(
     () => ProjectsBloc(
+      updateProjectUseCase: sl<UpdateProjectUseCase>(),
       listProjectsUseCase: sl<ListProjectsUseCase>(),
       createProjectUseCase: sl<CreateProjectUseCase>(),
       deleteProjectUseCase: sl<DeleteProjectUseCase>(),

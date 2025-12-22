@@ -8,6 +8,9 @@ class ProjectEntity {
   final bool isFavorite;
   final bool isPinned;
 
+  // ✅ NEW
+  final String role; // "owner" or "member"
+
   const ProjectEntity({
     required this.id,
     required this.name,
@@ -16,6 +19,7 @@ class ProjectEntity {
     required this.createdAt,
     required this.isFavorite,
     required this.isPinned,
+    required this.role, // ✅ NEW
   });
 
   ProjectEntity copyWith({
@@ -26,6 +30,7 @@ class ProjectEntity {
     DateTime? createdAt,
     bool? isFavorite,
     bool? isPinned,
+    String? role, // ✅ NEW
   }) {
     return ProjectEntity(
       id: id ?? this.id,
@@ -35,6 +40,7 @@ class ProjectEntity {
       createdAt: createdAt ?? this.createdAt,
       isFavorite: isFavorite ?? this.isFavorite,
       isPinned: isPinned ?? this.isPinned,
+      role: role ?? this.role, // ✅ NEW
     );
   }
 }

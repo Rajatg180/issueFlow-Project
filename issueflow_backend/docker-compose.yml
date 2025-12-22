@@ -2,20 +2,27 @@ services:
   db:
     image: postgres:16
     container_name: issueflow_db
-
-    # These env vars configure the Postgres container on first boot
     environment:
       POSTGRES_USER: issueflow
       POSTGRES_PASSWORD: issueflow
       POSTGRES_DB: issueflow
-
-    # Expose container's 5433 to your local machine 5432
     ports:
       - "5433:5432"
-
-    # Persist DB data even if container restarts
     volumes:
       - issueflow_pgdata:/var/lib/postgresql/data
+
+  api:
+    build: .
+    container_name: issueflow_api
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env.docker
+    volumes:
+      - .:/app
+      - ./secrets:/app/secrets:ro
+    depends_on:
+      - db
 
 volumes:
   issueflow_pgdata:

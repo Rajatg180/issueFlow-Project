@@ -128,7 +128,6 @@ class ProjectsRemoteDataSource {
     }
   }
 
-  // ✅ NEW: update preference (favorite/pin)
   Future<ProjectModel> updatePreference(
     String projectId, {
     bool? isFavorite,
@@ -151,6 +150,37 @@ class ProjectsRemoteDataSource {
     if (res.statusCode != 200) {
       throw AppException(
         _extractDetail(res.body) ?? "Failed to update preference",
+        statusCode: res.statusCode,
+      );
+    }
+
+    return ProjectModel.fromJson(jsonDecode(res.body) as Map<String, dynamic>);
+  }
+
+   Future<ProjectModel> editProject(
+    String projectId, {
+    String? name,
+    String? key,
+    String? description,
+  }) async {
+    // send ONLY provided fields
+    final body = <String, dynamic>{};
+    if (name != null) body["name"] = name;
+    if (key != null) body["key"] = key;
+    if (description != null) body["description"] = description;
+
+    final res = await _runWithAutoRefresh(() async {
+      final headers = await _authHeaders();
+      return client.patch(
+        _u("/projects/$projectId"),
+        headers: headers,
+        body: jsonEncode(body),
+      );
+    });
+
+    if (res.statusCode != 200) {
+      throw AppException(
+        _extractDetail(res.body) ?? "Failed to edit project",
         statusCode: res.statusCode,
       );
     }

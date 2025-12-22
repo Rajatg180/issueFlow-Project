@@ -51,3 +51,21 @@ class ProjectsPinnedToggled extends ProjectsEvent {
   @override
   List<Object?> get props => [projectId, value];
 }
+
+
+class ProjectsEditRequested extends ProjectsEvent {
+  final String projectId;
+  final String? name;
+  final String? key;
+  final String? description;
+
+  const ProjectsEditRequested({
+    required this.projectId,
+    this.name,
+    this.key,
+    this.description,
+  });
+
+  @override
+  List<Object?> get props => [projectId, name, key, description];
+}
