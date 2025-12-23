@@ -13,6 +13,7 @@ import 'core/theme/app_theme.dart';
 import 'features/auth/presentation/bloc/auth_bloc.dart';
 import 'features/auth/presentation/bloc/auth_event.dart';
 import 'features/shell/presentation/bloc/shell_bloc.dart';
+import 'package:issueflow_fronted/features/issues/presentation/bloc/issues_bloc.dart';
 
 
 Future<void> main() async {
@@ -41,6 +42,7 @@ class IssueFlowApp extends StatelessWidget {
         BlocProvider(create: (_) => sl<ProjectsBloc>()),
         BlocProvider(create: (_) => sl<InvitesBloc>()),
         BlocProvider(create: (_) => sl<InviteMembersCubit>()),
+        BlocProvider(create: (_) => sl<IssuesBloc>()),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,

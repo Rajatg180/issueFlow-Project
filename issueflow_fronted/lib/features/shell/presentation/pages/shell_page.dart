@@ -33,7 +33,7 @@ class _ShellPageState extends State<ShellPage> {
   late final List<Widget> _pages = const [
     DashboardPage(),
     ProjectsPage(),
-    IssuesPage(),
+    IssuesTablePage(),
     SettingsPage(),
   ];
 

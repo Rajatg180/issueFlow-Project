@@ -1,5 +1,7 @@
 import 'package:get_it/get_it.dart';
 import 'package:http/http.dart' as http;
+import 'package:issueflow_fronted/features/issues/domain/usecase/create_issue_usecase.dart';
+import 'package:issueflow_fronted/features/issues/domain/usecase/get_projects_with_issues_usecase.dart';
 
 import 'package:issueflow_fronted/features/onboarding/domain/usecase/complete_onboarding_usecase.dart';
 import 'package:issueflow_fronted/features/onboarding/domain/usecase/setup_onboarding_usecase.dart';
@@ -39,6 +41,12 @@ import 'package:issueflow_fronted/features/projects/domain/repositories/projects
 import 'package:issueflow_fronted/features/projects/domain/usecases/create_project_usecase.dart';
 import 'package:issueflow_fronted/features/projects/domain/usecases/list_projects_usecase.dart';
 import 'package:issueflow_fronted/features/projects/presentation/bloc/project/projects_bloc.dart';
+
+import 'package:issueflow_fronted/features/issues/data/datasources/issues_remote_datasource.dart';
+import 'package:issueflow_fronted/features/issues/data/repositories/issues_repository_impl.dart';
+import 'package:issueflow_fronted/features/issues/domain/repositories/issues_repository.dart';
+import 'package:issueflow_fronted/features/issues/presentation/bloc/issues_bloc.dart';
+
 
 final sl = GetIt.instance;
 
@@ -198,6 +206,46 @@ Future<void> setupServiceLocator() async {
   sl.registerFactory<InviteMembersCubit>(
     () => InviteMembersCubit(
       inviteMembersUseCase: sl<InviteMembersUseCase>(),
+    ),
+  );
+
+
+
+
+
+
+    // =========================================================
+  // ✅ ISSUES FEATURE
+  // =========================================================
+
+  // DataSource
+  sl.registerLazySingleton<IssuesRemoteDataSource>(
+    () => IssuesRemoteDataSourceImpl(
+      client: sl<http.Client>(),
+      tokenStorage: sl<TokenStorage>(),
+    ),
+  );
+
+
+  // Repository
+  sl.registerLazySingleton<IssuesRepository>(
+    () => IssuesRepositoryImpl(remote: sl<IssuesRemoteDataSource>()),
+  );
+
+  // UseCases
+  sl.registerLazySingleton<GetProjectsWithIssuesUseCase>(
+    () => GetProjectsWithIssuesUseCase(sl<IssuesRepository>()),
+  );
+
+  sl.registerLazySingleton<CreateIssueUseCase>(
+    () => CreateIssueUseCase(sl<IssuesRepository>()),
+  );
+
+  // Bloc
+  sl.registerFactory<IssuesBloc>(
+    () => IssuesBloc(
+      getProjectsWithIssues: sl<GetProjectsWithIssuesUseCase>(),
+      createIssue: sl<CreateIssueUseCase>(),
     ),
   );
 }

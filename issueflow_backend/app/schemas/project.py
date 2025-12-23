@@ -14,9 +14,7 @@ class ProjectPreferenceUpdateRequest(BaseModel):
     is_pinned: Optional[bool] = None
 
 
-# ✅ NEW: Edit project request
 class ProjectUpdateRequest(BaseModel):
-    # allow partial update
     name: Optional[str] = Field(default=None, min_length=1, max_length=200)
     key: Optional[str] = Field(default=None, min_length=2, max_length=10)
     description: Optional[str] = None

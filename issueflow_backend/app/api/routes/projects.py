@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
-
+from app.schemas.project_issues import ProjectWithIssuesResponse, IssueMiniResponse, UserMini
+from app.services.project_issue_service import list_projects_with_issues_and_users
 from app.core.deps import get_current_user
 from app.db.session import get_db
 from app.models.user import User
@@ -108,6 +109,51 @@ def update_preference(
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+    
+
+@router.get("/with-issues", response_model=list[ProjectWithIssuesResponse])
+def list_projects_with_all_issues(
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    try:
+        rows = list_projects_with_issues_and_users(db=db, user=user)
+
+        return [
+            ProjectWithIssuesResponse(
+                id=str(p.id),
+                name=p.name,
+                key=p.key,
+                description=p.description,
+                created_at=p.created_at,
+                updated_at=p.updated_at,
+                role=role,
+                issues=[
+                    IssueMiniResponse(
+                        id=str(i.id),
+                        key=i.key,
+                        title=i.title,
+                        description=i.description,
+                        type=i.type,
+                        priority=i.priority,
+                        status=i.status,
+                        due_date=i.due_date,
+                        created_at=i.created_at,
+                        updated_at=i.updated_at,
+                        reporter=UserMini(id=str(reporter.id), email=reporter.email),
+                        assignee=(
+                            UserMini(id=str(assignee.id), email=assignee.email)
+                            if assignee else None
+                        ),
+                    )
+                    for (i, reporter, assignee) in issue_rows
+                ],
+            )
+            for (p, role, issue_rows) in rows
+        ]
+
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.delete("/{project_id}")
@@ -160,3 +206,4 @@ def edit_project(
         )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+

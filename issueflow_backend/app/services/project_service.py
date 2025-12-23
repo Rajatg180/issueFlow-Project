@@ -106,7 +106,7 @@ def update_project_preference(
     if not project:
         raise ValueError("Project not found")
 
-    # ✅ ACCESS: allow owner OR member
+
     is_owner = project.owner_id == owner.id
     is_member = db.exec(
         select(ProjectMember).where(
@@ -118,7 +118,7 @@ def update_project_preference(
     if not (is_owner or is_member):
         raise ValueError("You do not have access to this project")
 
-    # ✅ preference is per-user-per-project
+
     pref = db.exec(
         select(ProjectPreference).where(
             ProjectPreference.user_id == owner.id,
@@ -126,7 +126,7 @@ def update_project_preference(
         )
     ).first()
 
-    # ✅ create if missing
+
     if not pref:
         pref = ProjectPreference(
             user_id=owner.id,
