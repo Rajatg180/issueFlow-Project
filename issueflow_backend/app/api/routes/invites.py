@@ -29,7 +29,7 @@ def my_invites(
                 token=inv.token,
                 status=inv.status,
                 invited_by_user_id=str(inv.invited_by_user_id),  # ✅ NEW
-                invited_by_email=inviter.email,  # ✅ NEW
+                invited_by_username=inviter.username,  # ✅ NEW
                 created_at=inv.created_at,
                 expires_at=inv.expires_at,
             )

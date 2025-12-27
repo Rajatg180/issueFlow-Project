@@ -28,7 +28,7 @@ class InviteModel extends InviteEntity {
 
       // ✅ NEW
       invitedByUserId: (json["invited_by_user_id"] ?? "").toString(),
-      invitedByEmail: (json["invited_by_email"] ?? "").toString(),
+      invitedByEmail: (json["invited_by_username"] ?? "").toString(),
 
       createdAt: DateTime.parse((json["created_at"] ?? "").toString()),
       expiresAt: DateTime.parse((json["expires_at"] ?? "").toString()),

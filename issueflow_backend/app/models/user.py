@@ -10,6 +10,8 @@ class User(SQLModel, table=True):
 
     email: str = Field(index=True, unique=True, nullable=False)
 
+    username: str = Field(index=True, unique=True, nullable=False, max_length=32)
+
     # Email/password users => set this
     # Google/Firebase users => None
     password_hash: Optional[str] = Field(default=None)

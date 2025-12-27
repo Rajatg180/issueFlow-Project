@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlmodel import Session , select
+from sqlmodel import Session, select
 
 from app.db.session import get_db
 from app.schemas.auth import (
@@ -8,7 +8,7 @@ from app.schemas.auth import (
     TokenResponse,
     RefreshRequest,
     UserMeResponse,
-    FirebaseLoginRequest
+    FirebaseLoginRequest,
 )
 from app.services.auth_service import (
     register_user,
@@ -19,16 +19,34 @@ from app.services.auth_service import (
 )
 from app.core.deps import get_current_user
 from app.models.user import User
-
 from app.services.firebase_service import verify_firebase_id_token
 
+import re
+import random
+
 router = APIRouter(prefix="/auth", tags=["Auth"])
+
+
+def _slug_username(s: str) -> str:
+    s = (s or "").strip().lower()
+    s = re.sub(r"[^a-z0-9_]+", "_", s)
+    s = re.sub(r"_+", "_", s).strip("_")
+    return s[:32] if s else "user"
+
+
+def _unique_username(db: Session, base: str) -> str:
+    base = _slug_username(base)
+    candidate = base
+    while db.exec(select(User).where(User.username == candidate)).first():
+        suffix = str(random.randint(1000, 9999))
+        candidate = f"{base[: max(0, 32 - 5)]}_{suffix}"  # "_" + 4 digits
+    return candidate
 
 
 @router.post("/register", response_model=TokenResponse)
 def register(payload: RegisterRequest, db: Session = Depends(get_db)):
     try:
-        user = register_user(db, payload.email, payload.password)
+        user = register_user(db, payload.email, payload.password, payload.username)
         tokens = issue_tokens(db, user)
         return TokenResponse(**tokens)
     except ValueError as e:
@@ -67,16 +85,32 @@ def firebase_login(payload: FirebaseLoginRequest, db: Session = Depends(get_db))
         if not user:
             user = db.exec(select(User).where(User.email == email)).first()
 
-        # Create user if not exists
         if not user:
-            user = User(email=email, firebase_uid=firebase_uid, password_hash=None)
+            # ✅ Create user with generated username (required since username is now non-null + unique)
+            uname = _unique_username(db, email.split("@")[0])
+            user = User(
+                email=email,
+                firebase_uid=firebase_uid,
+                username=uname,
+                password_hash=None,
+            )
             db.add(user)
             db.commit()
             db.refresh(user)
         else:
             # Ensure firebase_uid is saved (if user created earlier via email/pass)
+            changed = False
+
             if user.firebase_uid is None:
                 user.firebase_uid = firebase_uid
+                changed = True
+
+            # ✅ Ensure username exists (useful for old users after migration/backfill)
+            if not getattr(user, "username", None):
+                user.username = _unique_username(db, email.split("@")[0])
+                changed = True
+
+            if changed:
                 db.add(user)
                 db.commit()
                 db.refresh(user)
@@ -87,6 +121,7 @@ def firebase_login(payload: FirebaseLoginRequest, db: Session = Depends(get_db))
     except Exception:
         # Don’t leak internal error details to client
         raise HTTPException(status_code=401, detail="Firebase authentication failed")
+
 
 @router.post("/refresh")
 def refresh(payload: RefreshRequest, db: Session = Depends(get_db)):
@@ -109,5 +144,6 @@ def me(current_user: User = Depends(get_current_user)):
     return UserMeResponse(
         id=str(current_user.id),
         email=current_user.email,
+        username=current_user.username,
         has_completed_onboarding=current_user.has_completed_onboarding,
     )

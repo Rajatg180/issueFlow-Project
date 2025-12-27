@@ -12,6 +12,8 @@ class IssueModel extends IssueEntity {
     required super.status,
     required super.dueDate,
     required super.reporter,
+    required super.createdAt,
+    required super.updatedAt,
     required super.assignee,
   });
 
@@ -28,6 +30,8 @@ class IssueModel extends IssueEntity {
       priority: (json['priority'] ?? '').toString(),
       status: (json['status'] ?? '').toString(),
       dueDate: json['due_date']?.toString(),
+      createdAt: (json['created_at'] ?? '').toString(),
+      updatedAt: (json['updated_at'] ?? '').toString(),
       reporter: UserMiniModel.fromJson(reporterJson),
       assignee: (assigneeRaw is Map)
           ? UserMiniModel.fromJson(assigneeRaw.cast<String, dynamic>())

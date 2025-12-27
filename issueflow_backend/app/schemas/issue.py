@@ -24,5 +24,6 @@ class IssueResponse(BaseModel):
     type: IssueType
     priority: IssuePriority
     status: IssueStatus
-
     due_date: date | None
+
+

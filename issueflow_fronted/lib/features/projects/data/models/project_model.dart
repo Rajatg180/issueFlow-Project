@@ -9,7 +9,7 @@ class ProjectModel extends ProjectEntity {
     required super.createdAt,
     required super.isFavorite,
     required super.isPinned,
-    required super.role, // ✅ NEW
+    required super.role, 
   });
 
   factory ProjectModel.fromJson(Map<String, dynamic> json) {
@@ -25,8 +25,6 @@ class ProjectModel extends ProjectEntity {
           : DateTime.fromMillisecondsSinceEpoch(0),
       isFavorite: (json["is_favorite"] as bool?) ?? false,
       isPinned: (json["is_pinned"] as bool?) ?? false,
-
-      // ✅ NEW (backend returns "owner" or "member")
       role: (json["role"] ?? "member").toString(),
     );
   }

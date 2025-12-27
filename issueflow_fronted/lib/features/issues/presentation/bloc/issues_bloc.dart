@@ -1,6 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:issueflow_fronted/features/issues/domain/usecase/create_issue_usecase.dart';
 import 'package:issueflow_fronted/features/issues/domain/usecase/get_projects_with_issues_usecase.dart';
+import 'package:issueflow_fronted/features/issues/domain/usecase/get_project_users_usecase.dart';
 
 import '../../../../core/errors/app_exception.dart';
 import 'issues_event.dart';
@@ -9,14 +10,17 @@ import 'issues_state.dart';
 class IssuesBloc extends Bloc<IssuesEvent, IssuesState> {
   final GetProjectsWithIssuesUseCase getProjectsWithIssues;
   final CreateIssueUseCase createIssue;
+  final GetProjectUsersUseCase getProjectUsers;
 
   IssuesBloc({
     required this.getProjectsWithIssues,
     required this.createIssue,
+    required this.getProjectUsers,
   }) : super(const IssuesInitial()) {
     on<IssuesLoadRequested>(_onLoad);
     on<IssuesProjectToggled>(_onToggle);
     on<IssueCreateRequested>(_onCreateIssue);
+    on<ProjectUsersRequested>(_onProjectUsersRequested);
   }
 
   Future<void> _onLoad(IssuesLoadRequested event, Emitter<IssuesState> emit) async {
@@ -36,6 +40,9 @@ class IssuesBloc extends Bloc<IssuesEvent, IssuesState> {
     if (s is! IssuesLoaded) return;
 
     final next = Set<String>.from(s.expandedProjectIds);
+
+    final isExpanding = !next.contains(event.projectId);
+
     if (next.contains(event.projectId)) {
       next.remove(event.projectId);
     } else {
@@ -43,6 +50,10 @@ class IssuesBloc extends Bloc<IssuesEvent, IssuesState> {
     }
 
     emit(s.copyWith(expandedProjectIds: next));
+
+    if (isExpanding && !s.projectUsers.containsKey(event.projectId)) {
+      add(ProjectUsersRequested(event.projectId));
+    }
   }
 
   Future<void> _onCreateIssue(IssueCreateRequested event, Emitter<IssuesState> emit) async {
@@ -58,10 +69,9 @@ class IssuesBloc extends Bloc<IssuesEvent, IssuesState> {
         description: event.description,
         type: event.type,
         priority: event.priority,
-        dueDate: event.dueDate, // ✅ DateTime
+        dueDate: event.dueDate,
       );
 
-      // refresh list to show updated issues (and reporter/assignee enrichment)
       final updated = await getProjectsWithIssues();
       emit(s.copyWith(projects: updated, isCreating: false));
     } on AppException catch (e) {
@@ -69,13 +79,40 @@ class IssuesBloc extends Bloc<IssuesEvent, IssuesState> {
       emit(IssuesFailure(e.message));
 
       final stable = await getProjectsWithIssues();
-      emit(IssuesLoaded(projects: stable, expandedProjectIds: s.expandedProjectIds));
+      emit(IssuesLoaded(
+        projects: stable,
+        expandedProjectIds: s.expandedProjectIds,
+        projectUsers: s.projectUsers, 
+      ));
     } catch (e) {
       emit(s.copyWith(isCreating: false));
       emit(IssuesFailure(e.toString()));
 
       final stable = await getProjectsWithIssues();
-      emit(IssuesLoaded(projects: stable, expandedProjectIds: s.expandedProjectIds));
+      emit(IssuesLoaded(
+        projects: stable,
+        expandedProjectIds: s.expandedProjectIds,
+        projectUsers: s.projectUsers,
+      ));
+    }
+  }
+
+
+  Future<void> _onProjectUsersRequested(
+    ProjectUsersRequested event,
+    Emitter<IssuesState> emit,
+  ) async {
+    final s = state;
+    if (s is! IssuesLoaded) return;
+
+    try {
+      final users = await getProjectUsers(projectId: event.projectId);
+      final next = Map<String, dynamic>.from(s.projectUsers);
+      next[event.projectId] = users;
+
+      emit(s.copyWith(projectUsers: next.cast()));
+    } catch (_) {
+      // Keep silent: UI can disable dropdown if list not available.
     }
   }
 }

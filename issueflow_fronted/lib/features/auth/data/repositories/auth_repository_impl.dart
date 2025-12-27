@@ -15,11 +15,14 @@ class AuthRepositoryImpl implements AuthRepository {
   AuthRepositoryImpl({
     required this.remote,
     required this.tokenStorage,
-    required this.firebaseAuthService
+    required this.firebaseAuthService,
   });
 
   @override
-  Future<TokenPair> login({required String email, required String password}) async {
+  Future<TokenPair> login({
+    required String email,
+    required String password,
+  }) async {
     final tokens = await remote.login(email, password);
     await tokenStorage.saveTokens(
       accessToken: tokens.accessToken,
@@ -29,8 +32,13 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<TokenPair> register({required String email, required String password}) async {
-    final tokens = await remote.register(email, password);
+  @override
+  Future<TokenPair> register({
+    required String username,
+    required String email,
+    required String password,
+  }) async {
+    final tokens = await remote.register(username, email, password);
     await tokenStorage.saveTokens(
       accessToken: tokens.accessToken,
       refreshToken: tokens.refreshToken,
@@ -78,12 +86,13 @@ class AuthRepositoryImpl implements AuthRepository {
       await remote.logout(refresh);
     }
     await tokenStorage.clear();
-     await firebaseAuthService.signOut(); 
+    await firebaseAuthService.signOut();
   }
 
-   @override
+  @override
   Future<TokenPair> firebaseLogin() async {
-    final firebaseIdToken = await firebaseAuthService.signInWithGoogleAndGetIdToken();
+    final firebaseIdToken = await firebaseAuthService
+        .signInWithGoogleAndGetIdToken();
     final tokens = await remote.firebaseLogin(firebaseIdToken);
 
     await tokenStorage.saveTokens(

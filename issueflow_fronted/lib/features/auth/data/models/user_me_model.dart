@@ -4,6 +4,7 @@ class UserMeModel extends UserMe {
   const UserMeModel({
     required super.id,
     required super.email,
+    required super.username, // ✅ NEW
     required super.hasCompletedOnboarding,
   });
 
@@ -11,6 +12,7 @@ class UserMeModel extends UserMe {
     return UserMeModel(
       id: json["id"] as String,
       email: json["email"] as String,
+      username: (json["username"] ?? "") as String, // ✅ NEW (safe)
       hasCompletedOnboarding: json["has_completed_onboarding"] as bool,
     );
   }

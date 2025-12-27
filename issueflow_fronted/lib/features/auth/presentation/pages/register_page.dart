@@ -18,11 +18,13 @@ class RegisterPage extends StatefulWidget {
 class _RegisterPageState extends State<RegisterPage> {
   final email = TextEditingController();
   final password = TextEditingController();
+  final username = TextEditingController();
 
   @override
   void dispose() {
     email.dispose();
     password.dispose();
+    username.dispose();
     super.dispose();
   }
 
@@ -33,7 +35,7 @@ class _RegisterPageState extends State<RegisterPage> {
     return BlocListener<AuthBloc, AuthState>(
       listener: (context, state) {
         if (state is AuthFailure) {
-         AppToast.show(context, message: state.message, isError: true);
+          AppToast.show(context, message: state.message, isError: true);
         }
 
         // If registration succeeded, AuthBloc emits Authenticated.
@@ -64,10 +66,24 @@ class _RegisterPageState extends State<RegisterPage> {
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Text('Create your account', style: theme.textTheme.titleLarge),
+                        Text(
+                          'Create your account',
+                          style: theme.textTheme.titleLarge,
+                        ),
                         const SizedBox(height: 6),
-                        Text('Start tracking issues in minutes.', style: theme.textTheme.bodySmall),
-                        const SizedBox(height: 18),
+                        Text(
+                          'Start tracking issues in minutes.',
+                          style: theme.textTheme.bodySmall,
+                        ),
+                        const SizedBox(height: 12),
+
+                        AuthTextField(
+                          controller: username,
+                          label: 'Username',
+                          hintText: 'e.g. rajat_gore',
+                        ),
+
+                        const SizedBox(height: 12),
 
                         AuthTextField(
                           controller: email,
@@ -93,17 +109,20 @@ class _RegisterPageState extends State<RegisterPage> {
                                 ? null
                                 : () {
                                     context.read<AuthBloc>().add(
-                                          AuthRegisterRequested(
-                                            email: email.text,
-                                            password: password.text,
-                                          ),
-                                        );
+                                      AuthRegisterRequested(
+                                        username: username.text,
+                                        email: email.text,
+                                        password: password.text,
+                                      ),
+                                    );
                                   },
                             child: isLoading
                                 ? const SizedBox(
                                     height: 18,
                                     width: 18,
-                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
                                   )
                                 : const Text('Create account'),
                           ),

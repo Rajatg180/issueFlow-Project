@@ -9,7 +9,7 @@ from app.models.issue import IssuePriority, IssueStatus, IssueType
 
 class UserMini(BaseModel):
     id: str
-    email: str  # (acts as display name for now)
+    username: str
 
 
 class IssueMiniResponse(BaseModel):

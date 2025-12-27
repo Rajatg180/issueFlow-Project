@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:issueflow_fronted/features/issues/data/models/project_user_model.dart';
 
 import '../../../../core/config/app_config.dart';
 import '../../../../core/errors/app_exception.dart';
@@ -16,8 +17,10 @@ abstract class IssuesRemoteDataSource {
     String? description,
     required String type,
     required String priority,
-    DateTime? dueDate, // ✅ DateTime
+    DateTime? dueDate,
   });
+
+  Future<List<ProjectUserModel>> getProjectUsers({required String projectId});
 }
 
 class IssuesRemoteDataSourceImpl implements IssuesRemoteDataSource {
@@ -96,7 +99,7 @@ class IssuesRemoteDataSourceImpl implements IssuesRemoteDataSource {
       "description": description,
       "type": type,
       "priority": priority,
-      "due_date": _toYmd(dueDate), // ✅ send as yyyy-mm-dd (backend expects date)
+      "due_date": _toYmd(dueDate),
     };
 
     final res = await client.post(
@@ -125,5 +128,36 @@ class IssuesRemoteDataSourceImpl implements IssuesRemoteDataSource {
     }
 
     return IssueModel.fromJson(decoded.cast<String, dynamic>());
+  }
+
+  @override
+  Future<List<ProjectUserModel>> getProjectUsers({
+    required String projectId,
+  }) async {
+    final token = await tokenStorage.readAccessToken();
+    if (token == null || token.isEmpty) {
+      throw const AppException("Missing access token");
+    }
+
+    final uri = Uri.parse('${AppConfig.baseUrl}/users/projects/$projectId');
+
+    final res = await client.get(
+      uri,
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (res.statusCode != 200) {
+      throw Exception('Failed to load project users (${res.statusCode})');
+    }
+
+    final data = jsonDecode(res.body) as Map<String, dynamic>;
+    final list = (data['users'] as List<dynamic>? ?? []);
+
+    return list
+        .map((e) => ProjectUserModel.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 }

@@ -1,10 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:issueflow_fronted/features/issues/domain/usecase/create_issue_usecase.dart';
-import 'package:issueflow_fronted/features/issues/domain/usecase/get_projects_with_issues_usecase.dart';
-
 import '../../../../core/widgets/app_toast.dart';
-import '../../data/repositories/issues_repository_impl.dart';
 import '../bloc/issues_bloc.dart';
 import '../bloc/issues_event.dart';
 import '../bloc/issues_state.dart';
@@ -23,9 +19,10 @@ class _IssuesTablePageState extends State<IssuesTablePage> {
   void initState() {
     super.initState();
     // fire once
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    print("Loading issues page");
+    // WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<IssuesBloc>().add(const IssuesLoadRequested());
-    });
+    // });
   }
 
   @override
@@ -33,7 +30,6 @@ class _IssuesTablePageState extends State<IssuesTablePage> {
     return const _IssuesView();
   }
 }
-
 
 class _IssuesView extends StatelessWidget {
   const _IssuesView();
@@ -59,7 +55,8 @@ class _IssuesView extends StatelessWidget {
                 Text(state.message),
                 const SizedBox(height: 12),
                 OutlinedButton(
-                  onPressed: () => context.read<IssuesBloc>().add(const IssuesLoadRequested()),
+                  onPressed: () =>
+                      context.read<IssuesBloc>().add(const IssuesLoadRequested()),
                   child: const Text('Retry'),
                 ),
               ],
@@ -77,7 +74,8 @@ class _IssuesView extends StatelessWidget {
                 const Text('No projects found.'),
                 const SizedBox(height: 12),
                 OutlinedButton(
-                  onPressed: () => context.read<IssuesBloc>().add(const IssuesLoadRequested()),
+                  onPressed: () =>
+                      context.read<IssuesBloc>().add(const IssuesLoadRequested()),
                   child: const Text('Refresh'),
                 ),
               ],
@@ -99,8 +97,12 @@ class _IssuesView extends StatelessWidget {
               return ProjectIssuesTile(
                 project: p,
                 expanded: expanded,
-                isCreating: s.isCreating, // ✅ now exists
-                onToggle: () => context.read<IssuesBloc>().add(IssuesProjectToggled(p.id)),
+                isCreating: s.isCreating,
+
+                projectUsers: s.projectUsers[p.id] ?? const [],
+
+                onToggle: () =>
+                    context.read<IssuesBloc>().add(IssuesProjectToggled(p.id)),
                 onCreateIssue: () async {
                   final result = await CreateIssueDialog.open(context);
                   if (result == null) return;
@@ -112,7 +114,7 @@ class _IssuesView extends StatelessWidget {
                           description: result.description,
                           type: result.type,
                           priority: result.priority,
-                          dueDate: result.dueDate, // ✅ DateTime?
+                          dueDate: result.dueDate,
                         ),
                       );
                 },

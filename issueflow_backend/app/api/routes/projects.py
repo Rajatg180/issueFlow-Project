@@ -140,9 +140,9 @@ def list_projects_with_all_issues(
                         due_date=i.due_date,
                         created_at=i.created_at,
                         updated_at=i.updated_at,
-                        reporter=UserMini(id=str(reporter.id), email=reporter.email),
+                        reporter=UserMini(id=str(reporter.id), username=reporter.username),
                         assignee=(
-                            UserMini(id=str(assignee.id), email=assignee.email)
+                            UserMini(id=str(assignee.id), username=assignee.username)
                             if assignee else None
                         ),
                     )
@@ -165,7 +165,7 @@ def remove(project_id: str, db: Session = Depends(get_db), user: User = Depends(
         raise HTTPException(status_code=400, detail=str(e))
 
 
-# ✅ NEW: Edit project
+
 @router.patch("/{project_id}", response_model=ProjectResponse)
 def edit_project(
     project_id: str,

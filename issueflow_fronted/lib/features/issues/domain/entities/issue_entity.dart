@@ -11,7 +11,8 @@ class IssueEntity {
   final String status;   // todo/in_progress/done
 
   final String? dueDate; // "YYYY-MM-DD" or null
-
+  final String createdAt;
+  final String updatedAt;
   final UserMiniEntity reporter;
   final UserMiniEntity? assignee;
 
@@ -24,6 +25,8 @@ class IssueEntity {
     required this.priority,
     required this.status,
     required this.dueDate,
+    required this.createdAt,
+    required this.updatedAt,
     required this.reporter,
     required this.assignee,
   });

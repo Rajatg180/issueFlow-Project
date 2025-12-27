@@ -3,13 +3,13 @@ import '../../domain/entities/user_mini_entity.dart';
 class UserMiniModel extends UserMiniEntity {
   const UserMiniModel({
     required super.id,
-    required super.email,
+    required super.username,
   });
 
   factory UserMiniModel.fromJson(Map<String, dynamic> json) {
     return UserMiniModel(
       id: (json['id'] ?? '').toString(),
-      email: (json['email'] ?? '').toString(),
+      username: (json['username'] ?? '').toString(),
     );
   }
 }

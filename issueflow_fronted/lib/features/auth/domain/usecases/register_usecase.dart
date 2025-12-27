@@ -5,7 +5,12 @@ class RegisterUseCase {
   final AuthRepository repo;
   RegisterUseCase(this.repo);
 
-  Future<TokenPair> call({required String email, required String password}) {
-    return repo.register(email: email, password: password);
+  Future<TokenPair> call({
+    required String username,
+    required String email,
+    required String password,
+  }) {
+    return repo.register(username: username, email: email, password: password);
   }
 }
+

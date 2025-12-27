@@ -1,6 +1,7 @@
 import 'package:get_it/get_it.dart';
 import 'package:http/http.dart' as http;
 import 'package:issueflow_fronted/features/issues/domain/usecase/create_issue_usecase.dart';
+import 'package:issueflow_fronted/features/issues/domain/usecase/get_project_users_usecase.dart';
 import 'package:issueflow_fronted/features/issues/domain/usecase/get_projects_with_issues_usecase.dart';
 
 import 'package:issueflow_fronted/features/onboarding/domain/usecase/complete_onboarding_usecase.dart';
@@ -241,11 +242,14 @@ Future<void> setupServiceLocator() async {
     () => CreateIssueUseCase(sl<IssuesRepository>()),
   );
 
+  sl.registerLazySingleton<GetProjectUsersUseCase>(() => GetProjectUsersUseCase(sl<IssuesRepository>()));
+
   // Bloc
   sl.registerFactory<IssuesBloc>(
     () => IssuesBloc(
       getProjectsWithIssues: sl<GetProjectsWithIssuesUseCase>(),
       createIssue: sl<CreateIssueUseCase>(),
+      getProjectUsers: sl<GetProjectUsersUseCase>()
     ),
   );
 }

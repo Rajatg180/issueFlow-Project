@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../domain/entities/project_user_entity.dart';
 import '../../domain/entities/project_with_issues_entity.dart';
 import 'issues_table.dart';
 
@@ -11,6 +12,9 @@ class ProjectIssuesTile extends StatefulWidget {
   final VoidCallback onCreateIssue;
   final bool isCreating;
 
+  // ✅ NEW: project users for dropdown (from Bloc cache)
+  final List<ProjectUserEntity> projectUsers;
+
   const ProjectIssuesTile({
     super.key,
     required this.project,
@@ -18,6 +22,7 @@ class ProjectIssuesTile extends StatefulWidget {
     required this.onToggle,
     required this.onCreateIssue,
     required this.isCreating,
+    required this.projectUsers,
   });
 
   @override
@@ -95,7 +100,13 @@ class _ProjectIssuesTileState extends State<ProjectIssuesTile>
           ),
         ),
         const SizedBox(height: 8),
-        IssuesTable(issues: widget.project.issues),
+
+        // ✅ ONLY NEW: pass users list to IssuesTable (for Jira-like dropdown)
+        IssuesTable(
+          issues: widget.project.issues,
+          projectUsers: widget.projectUsers,
+        ),
+
         const SizedBox(height: 14),
       ],
     );
@@ -119,7 +130,8 @@ class _ProjectIssuesTileState extends State<ProjectIssuesTile>
               child: Row(
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
                       color: AppColors.surface2,
                       borderRadius: BorderRadius.circular(10),

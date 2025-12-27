@@ -15,4 +15,5 @@ class AppColors {
   static const success = Color(0xFF1F845A);
   static const warning = Color(0xFFE2B203);
   static const info = Color(0xFF579DFF);
+  static const Color mutedText = Color(0xFF9CA3AF);
 }

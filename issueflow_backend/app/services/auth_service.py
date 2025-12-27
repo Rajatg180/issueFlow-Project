@@ -15,12 +15,23 @@ from app.models.user import User
 from app.models.refresh_token import RefreshToken
 
 
-def register_user(db: Session, email: str, password: str) -> User:
-    existing = db.exec(select(User).where(User.email == email)).first()
-    if existing:
+def register_user(db: Session, email: str, password: str, username: str) -> User:
+    email_norm = email.strip().lower()
+    username_norm = username.strip()
+
+    existing_email = db.exec(select(User).where(User.email == email_norm)).first()
+    if existing_email:
         raise ValueError("Email already registered")
 
-    user = User(email=email, password_hash=hash_password(password))
+    existing_username = db.exec(select(User).where(User.username == username_norm)).first()
+    if existing_username:
+        raise ValueError("Username already taken")
+
+    user = User(
+        email=email_norm,
+        username=username_norm,
+        password_hash=hash_password(password),
+    )
     db.add(user)
     db.commit()
     db.refresh(user)

@@ -17,7 +17,7 @@ class IssueCreateRequested extends IssuesEvent {
   final String? description;
   final String type;
   final String priority;
-  final DateTime? dueDate; // ✅ DateTime
+  final DateTime? dueDate;
 
   const IssueCreateRequested({
     required this.projectId,
@@ -27,4 +27,8 @@ class IssueCreateRequested extends IssuesEvent {
     this.priority = 'medium',
     this.dueDate,
   });
+}
+class ProjectUsersRequested extends IssuesEvent {
+  final String projectId;
+  const ProjectUsersRequested(this.projectId);
 }

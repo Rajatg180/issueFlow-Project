@@ -1,11 +1,11 @@
 class UserMiniEntity {
   final String id;
-  final String email;
+  final String username;
 
   const UserMiniEntity({
     required this.id,
-    required this.email,
+    required this.username,
   });
 
-  String get displayName => email; 
+  String get displayName => username; 
 }

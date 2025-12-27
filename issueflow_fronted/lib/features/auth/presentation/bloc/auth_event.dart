@@ -23,12 +23,18 @@ class AuthLoginRequested extends AuthEvent {
 
 /// User clicks Register
 class AuthRegisterRequested extends AuthEvent {
+  final String username; // ✅ NEW
   final String email;
   final String password;
-  const AuthRegisterRequested({required this.email, required this.password});
+
+  const AuthRegisterRequested({
+    required this.username,
+    required this.email,
+    required this.password,
+  });
 
   @override
-  List<Object?> get props => [email, password];
+  List<Object?> get props => [username, email, password];
 }
 
 /// Onboarding completed
@@ -39,7 +45,6 @@ class AuthOnboardingCompleted extends AuthEvent {
 class AuthGoogleLoginRequested extends AuthEvent {
   const AuthGoogleLoginRequested();
 }
-
 
 /// Logout
 class AuthLogoutRequested extends AuthEvent {

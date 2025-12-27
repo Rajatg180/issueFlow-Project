@@ -28,7 +28,7 @@ class MyInviteResponse(BaseModel):
     status: InviteStatus
 
     invited_by_user_id: str  # ✅ NEW
-    invited_by_email: EmailStr  # ✅ NEW
+    invited_by_username: str  # ✅ NEW
 
     created_at: datetime
     expires_at: datetime

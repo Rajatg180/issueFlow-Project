@@ -20,11 +20,15 @@ class AuthRemoteDataSource {
     return null;
   }
 
-  Future<TokenPairModel> register(String email, String password) async {
+  Future<TokenPairModel> register(String username, String email, String password) async {
     final res = await client.post(
       _u("/auth/register"),
       headers: {"Content-Type": "application/json"},
-      body: jsonEncode({"email": email, "password": password}),
+      body: jsonEncode({
+        "username": username,
+        "email": email,
+        "password": password,
+      }),
     );
 
     if (res.statusCode != 200) {
@@ -32,6 +36,7 @@ class AuthRemoteDataSource {
     }
     return TokenPairModel.fromJson(jsonDecode(res.body) as Map<String, dynamic>);
   }
+
 
   Future<TokenPairModel> login(String email, String password) async {
     final res = await client.post(

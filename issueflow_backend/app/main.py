@@ -8,6 +8,7 @@ from app.api.routes.projects import router as projects_router  # ✅ ADD THIS
 from app.api.routes.issues import router as issues_router      # ✅ (if you want issues too)
 from app.api.routes.project_invites import router as project_invites_router
 from app.api.routes.invites import router as invites_router
+from app.api.routes.users import router as users_router
 
 app = FastAPI(title="IssueFlow API")
 
@@ -21,6 +22,7 @@ app.add_middleware(
         "http://127.0.0.1",
         "http://localhost:8000",
         "http://127.0.0.1:8000",
+        "http://localhost:63329/"
     ],
     allow_origin_regex=r"^http://localhost:\d+$",
     allow_credentials=True,
@@ -38,6 +40,7 @@ app.include_router(projects_router)
 app.include_router(issues_router) 
 app.include_router(project_invites_router)
 app.include_router(invites_router)
+app.include_router(users_router)  
 
 @app.get("/health")
 def health():
