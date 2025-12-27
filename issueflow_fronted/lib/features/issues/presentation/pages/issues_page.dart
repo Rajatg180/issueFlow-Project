@@ -18,11 +18,8 @@ class _IssuesTablePageState extends State<IssuesTablePage> {
   @override
   void initState() {
     super.initState();
-    // fire once
     print("Loading issues page");
-    // WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<IssuesBloc>().add(const IssuesLoadRequested());
-    // });
+    context.read<IssuesBloc>().add(const IssuesLoadRequested());
   }
 
   @override
@@ -40,6 +37,10 @@ class _IssuesView extends StatelessWidget {
       listener: (context, state) {
         if (state is IssuesFailure) {
           AppToast.show(context, message: state.message, isError: true);
+        }
+
+        if (state is IssuesLoaded && state.toastMessage != null) {
+          AppToast.show(context, message: state.toastMessage!, isError: false);
         }
       },
       builder: (context, state) {
@@ -98,9 +99,7 @@ class _IssuesView extends StatelessWidget {
                 project: p,
                 expanded: expanded,
                 isCreating: s.isCreating,
-
                 projectUsers: s.projectUsers[p.id] ?? const [],
-
                 onToggle: () =>
                     context.read<IssuesBloc>().add(IssuesProjectToggled(p.id)),
                 onCreateIssue: () async {

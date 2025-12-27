@@ -21,6 +21,25 @@ abstract class IssuesRemoteDataSource {
   });
 
   Future<List<ProjectUserModel>> getProjectUsers({required String projectId});
+
+  // ✅ NEW: update issue
+  Future<void> updateIssue({
+    required String projectId,
+    required String issueId,
+    required String title,
+    String? description,
+    required String type,
+    required String priority,
+    required String status,
+    DateTime? dueDate,
+    String? assigneeId, // null => unassign
+    required String reporterId,
+  });
+
+  Future<void> deleteIssue({
+    required String projectId,
+    required String issueId,
+  });
 }
 
 class IssuesRemoteDataSourceImpl implements IssuesRemoteDataSource {
@@ -159,5 +178,91 @@ class IssuesRemoteDataSourceImpl implements IssuesRemoteDataSource {
     return list
         .map((e) => ProjectUserModel.fromJson(e as Map<String, dynamic>))
         .toList();
+  }
+
+  @override
+  Future<void> updateIssue({
+    required String projectId,
+    required String issueId,
+    required String title,
+    String? description,
+    required String type,
+    required String priority,
+    required String status,
+    DateTime? dueDate,
+    String? assigneeId,
+    required String reporterId,
+  }) async {
+    final token = await tokenStorage.readAccessToken();
+    if (token == null || token.isEmpty) {
+      throw const AppException("Missing access token");
+    }
+
+    final uri = Uri.parse('${AppConfig.baseUrl}/projects/$projectId/issues/$issueId');
+
+    // We send only editable fields (like your table).
+    // Important: sending "assignee_id": null will unassign (backend supports this).
+    final body = <String, dynamic>{
+      "title": title,
+      "description": description,
+      "type": type,
+      "priority": priority,
+      "status": status,
+      "due_date": _toYmd(dueDate),
+      "assignee_id": assigneeId, // null => unassign
+      "reporter_id": reporterId, // required
+    };
+
+    final res = await client.patch(
+      uri,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+      body: jsonEncode(body),
+    );
+
+    if (res.statusCode < 200 || res.statusCode >= 300) {
+      String msg = 'Failed to update issue';
+      try {
+        final decoded = jsonDecode(res.body);
+        if (decoded is Map && decoded['detail'] != null) {
+          msg = decoded['detail'].toString();
+        }
+      } catch (_) {}
+      throw AppException(msg, statusCode: res.statusCode);
+    }
+  }
+
+  @override
+  Future<void> deleteIssue({
+    required String projectId,
+    required String issueId,
+  }) async {
+    final token = await tokenStorage.readAccessToken();
+    if (token == null || token.isEmpty) {
+      throw const AppException("Missing access token");
+    }
+
+    final uri = Uri.parse('${AppConfig.baseUrl}/projects/$projectId/issues/$issueId');
+
+    final res = await client.delete(
+      uri,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    if (res.statusCode < 200 || res.statusCode >= 300) {
+      String msg = 'Failed to delete issue';
+      try {
+        final decoded = jsonDecode(res.body);
+        if (decoded is Map && decoded['detail'] != null) {
+          msg = decoded['detail'].toString();
+        }
+      } catch (_) {}
+      throw AppException(msg, statusCode: res.statusCode);
+    }
   }
 }

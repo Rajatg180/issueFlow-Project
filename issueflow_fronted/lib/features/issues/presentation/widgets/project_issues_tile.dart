@@ -12,7 +12,6 @@ class ProjectIssuesTile extends StatefulWidget {
   final VoidCallback onCreateIssue;
   final bool isCreating;
 
-  // ✅ NEW: project users for dropdown (from Bloc cache)
   final List<ProjectUserEntity> projectUsers;
 
   const ProjectIssuesTile({
@@ -39,7 +38,7 @@ class _ProjectIssuesTileState extends State<ProjectIssuesTile>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 280), // ✅ slower + visible
+      duration: const Duration(milliseconds: 280),
       reverseDuration: const Duration(milliseconds: 220),
     );
 
@@ -56,7 +55,6 @@ class _ProjectIssuesTileState extends State<ProjectIssuesTile>
   void didUpdateWidget(covariant ProjectIssuesTile oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    // ✅ guarantee smooth open/close
     if (widget.expanded != oldWidget.expanded) {
       if (widget.expanded) {
         _controller.forward();
@@ -101,8 +99,8 @@ class _ProjectIssuesTileState extends State<ProjectIssuesTile>
         ),
         const SizedBox(height: 8),
 
-        // ✅ ONLY NEW: pass users list to IssuesTable (for Jira-like dropdown)
         IssuesTable(
+          projectId: widget.project.id, // ✅ NEW
           issues: widget.project.issues,
           projectUsers: widget.projectUsers,
         ),
@@ -172,12 +170,10 @@ class _ProjectIssuesTileState extends State<ProjectIssuesTile>
               ),
             ),
           ),
-
-          // ✅ REAL smooth animation (open + close)
           ClipRect(
             child: SizeTransition(
               sizeFactor: _curve,
-              axisAlignment: -1.0, // expand from top
+              axisAlignment: -1.0,
               child: FadeTransition(
                 opacity: _curve,
                 child: _expandedBody(context),

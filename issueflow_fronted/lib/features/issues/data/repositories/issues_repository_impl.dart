@@ -1,8 +1,6 @@
-import 'package:issueflow_fronted/features/issues/data/models/project_user_model.dart';
-import 'package:issueflow_fronted/features/issues/domain/entities/project_user_entity.dart';
-
 import '../../../../core/errors/app_exception.dart';
 import '../../domain/entities/issue_entity.dart';
+import '../../domain/entities/project_user_entity.dart';
 import '../../domain/entities/project_with_issues_entity.dart';
 import '../../domain/repositories/issues_repository.dart';
 import '../datasources/issues_remote_datasource.dart';
@@ -56,6 +54,58 @@ class IssuesRepositoryImpl implements IssuesRepository {
       rethrow;
     } catch (_) {
       throw const AppException("Something went wrong while loading project users");
+    }
+  }
+
+  // ✅ NEW
+  @override
+  Future<void> updateIssue({
+    required String projectId,
+    required String issueId,
+    required String title,
+    String? description,
+    required String type,
+    required String priority,
+    required String status,
+    DateTime? dueDate,
+    String? assigneeId,
+    required String reporterId,
+  }) async {
+    try {
+      await remote.updateIssue(
+        projectId: projectId,
+        issueId: issueId,
+        title: title,
+        description: description,
+        type: type,
+        priority: priority,
+        status: status,
+        dueDate: dueDate,
+        assigneeId: assigneeId,
+        reporterId: reporterId,
+      );
+    } on AppException {
+      rethrow;
+    } catch (_) {
+      throw const AppException("Something went wrong while updating issue");
+    }
+  }
+
+  @override
+  Future<void> deleteIssue({
+    required String projectId,
+    required String issueId,
+  }) async {
+    
+    try {
+      await remote.deleteIssue(
+        projectId: projectId,
+        issueId: issueId,
+      );
+    } on AppException {
+      rethrow;
+    } catch (_) {
+      throw const AppException("Something went wrong while deleting issue");
     }
   }
 }

@@ -1,7 +1,5 @@
-import 'package:issueflow_fronted/features/issues/data/models/project_user_model.dart';
-import 'package:issueflow_fronted/features/issues/domain/entities/project_user_entity.dart';
-
 import '../entities/issue_entity.dart';
+import '../entities/project_user_entity.dart';
 import '../entities/project_with_issues_entity.dart';
 
 abstract class IssuesRepository {
@@ -17,4 +15,24 @@ abstract class IssuesRepository {
   });
 
   Future<List<ProjectUserEntity>> getProjectUsers({required String projectId});
+
+  // ✅ NEW
+  Future<void> updateIssue({
+    required String projectId,
+    required String issueId,
+    required String title,
+    String? description,
+    required String type,
+    required String priority,
+    required String status,
+    DateTime? dueDate,
+    String? assigneeId,
+    required String reporterId,
+  });
+
+  Future<void> deleteIssue({
+    required String projectId,
+    required String issueId,
+  });
+  
 }
