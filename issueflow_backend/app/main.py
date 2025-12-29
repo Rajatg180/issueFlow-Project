@@ -1,20 +1,20 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-
 from app.db.init_db import init_db
 from app.api.routes.auth import router as auth_router
 from app.api.routes.onboarding import router as onboarding_router
-from app.api.routes.projects import router as projects_router  # ✅ ADD THIS
-from app.api.routes.issues import router as issues_router      # ✅ (if you want issues too)
+from app.api.routes.projects import router as projects_router  # ADD THIS
+from app.api.routes.issues import router as issues_router      # (if you want issues too)
 from app.api.routes.project_invites import router as project_invites_router
 from app.api.routes.invites import router as invites_router
 from app.api.routes.users import router as users_router
+from app.api.routes.comments import router as comments_router
 
 app = FastAPI(title="IssueFlow API")
 
 app = FastAPI(title="IssueFlow API")
 
-# ✅ CORS for Flutter Web dev server (random localhost port)
+# CORS for Flutter Web dev server (random localhost port)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -41,6 +41,7 @@ app.include_router(issues_router)
 app.include_router(project_invites_router)
 app.include_router(invites_router)
 app.include_router(users_router)  
+app.include_router(comments_router)
 
 @app.get("/health")
 def health():

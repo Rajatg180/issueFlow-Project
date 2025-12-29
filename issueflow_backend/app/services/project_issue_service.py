@@ -4,9 +4,11 @@ from collections import defaultdict
 from typing import Dict, List, Tuple
 from sqlmodel import Session, select
 from sqlalchemy.orm import aliased
+from sqlalchemy import func
 
 from app.models.issue import Issue
 from app.models.user import User
+from app.models.issue_comment import IssueComment  # ✅ NEW
 from app.services.project_service import list_projects
 
 
@@ -18,8 +20,8 @@ def list_projects_with_issues_and_users(db: Session, user: User) -> List[Tuple]:
         ...
       ]
 
-    This keeps the behavior exactly like your current /projects/with-issues
-    but enriches each issue with reporter + assignee user info.
+    Same as before, now also supports comments_count lookup
+    (we'll use it in the router without changing structure).
     """
 
     # 1) Accessible projects (owned + member) using your existing logic
@@ -44,15 +46,31 @@ def list_projects_with_issues_and_users(db: Session, user: User) -> List[Tuple]:
         ).all()
     )
 
-    # 3) Group issues by project_id
+    # ✅ NEW: build comments_count map: issue_id -> count
+    issue_ids = [i.id for (i, _r, _a) in issue_rows]
+    comment_count_map: Dict[str, int] = {}
+
+    if issue_ids:
+        counts = list(
+            db.exec(
+                select(IssueComment.issue_id, func.count(IssueComment.id))
+                .where(IssueComment.issue_id.in_(issue_ids))
+                .group_by(IssueComment.issue_id)
+            ).all()
+        )
+        comment_count_map = {str(issue_id): int(cnt) for (issue_id, cnt) in counts}
+
+    # 3) Group issues by project_id (unchanged structure)
     grouped: Dict = defaultdict(list)
     for (issue, reporter, assignee) in issue_rows:
         grouped[issue.project_id].append((issue, reporter, assignee))
 
     # 4) Attach role and grouped issues per project
+    # ✅ return comment_count_map ALSO but without changing outer structure too much:
+    # We'll attach it as the 4th element in tuple => (p, role, issue_rows, comment_count_map)
     out = []
     for (p, _pref) in rows:
         role = "owner" if str(p.owner_id) == str(user.id) else "member"
-        out.append((p, role, grouped.get(p.id, [])))
+        out.append((p, role, grouped.get(p.id, []), comment_count_map))
 
     return out

@@ -25,6 +25,7 @@ class IssueMiniResponse(BaseModel):
     updated_at: datetime
     reporter: UserMini
     assignee: Optional[UserMini] = None
+    comments_count: int = 0 
 
 
 class ProjectWithIssuesResponse(BaseModel):

@@ -15,7 +15,7 @@ class IssueEntity {
   final String updatedAt;
   final UserMiniEntity reporter;
   final UserMiniEntity? assignee;
-
+  final int commentsCount;
   const IssueEntity({
     required this.id,
     required this.key,
@@ -29,5 +29,6 @@ class IssueEntity {
     required this.updatedAt,
     required this.reporter,
     required this.assignee,
+    required this.commentsCount,
   });
 }

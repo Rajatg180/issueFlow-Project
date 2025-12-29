@@ -1,4 +1,4 @@
-import '../../domain/entities/project_with_issues_entity.dart';
+import '../../../domain/entities/project_with_issues_entity.dart';
 import 'package:issueflow_fronted/features/issues/domain/entities/project_user_entity.dart';
 
 abstract class IssuesState {

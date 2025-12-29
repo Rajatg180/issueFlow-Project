@@ -119,41 +119,47 @@ def list_projects_with_all_issues(
     try:
         rows = list_projects_with_issues_and_users(db=db, user=user)
 
-        return [
-            ProjectWithIssuesResponse(
-                id=str(p.id),
-                name=p.name,
-                key=p.key,
-                description=p.description,
-                created_at=p.created_at,
-                updated_at=p.updated_at,
-                role=role,
-                issues=[
-                    IssueMiniResponse(
-                        id=str(i.id),
-                        key=i.key,
-                        title=i.title,
-                        description=i.description,
-                        type=i.type,
-                        priority=i.priority,
-                        status=i.status,
-                        due_date=i.due_date,
-                        created_at=i.created_at,
-                        updated_at=i.updated_at,
-                        reporter=UserMini(id=str(reporter.id), username=reporter.username),
-                        assignee=(
-                            UserMini(id=str(assignee.id), username=assignee.username)
-                            if assignee else None
-                        ),
-                    )
-                    for (i, reporter, assignee) in issue_rows
-                ],
+        out: list[ProjectWithIssuesResponse] = []
+
+        for (p, role, issue_rows, comment_count_map) in rows:
+            out.append(
+                ProjectWithIssuesResponse(
+                    id=str(p.id),
+                    name=p.name,
+                    key=p.key,
+                    description=p.description,
+                    created_at=p.created_at,
+                    updated_at=p.updated_at,
+                    role=role,
+                    issues=[
+                        IssueMiniResponse(
+                            id=str(i.id),
+                            key=i.key,
+                            title=i.title,
+                            description=i.description,
+                            type=i.type,
+                            priority=i.priority,
+                            status=i.status,
+                            due_date=i.due_date,
+                            created_at=i.created_at,
+                            updated_at=i.updated_at,
+                            reporter=UserMini(id=str(reporter.id), username=reporter.username),
+                            assignee=(
+                                UserMini(id=str(assignee.id), username=assignee.username)
+                                if assignee else None
+                            ),
+                            comments_count=comment_count_map.get(str(i.id), 0),  # ✅ FIX
+                        )
+                        for (i, reporter, assignee) in issue_rows
+                    ],
+                )
             )
-            for (p, role, issue_rows) in rows
-        ]
+
+        return out
 
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
 
 
 @router.delete("/{project_id}")

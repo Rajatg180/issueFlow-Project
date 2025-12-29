@@ -41,8 +41,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     if (u.length < 3) return "Username must be at least 3 characters.";
     if (u.length > 32) return "Username must be at most 32 characters.";
     final r = RegExp(r"^[a-zA-Z0-9_]+$");
-    if (!r.hasMatch(u))
+    if (!r.hasMatch(u)) {
       return "Username can only contain letters, numbers, and underscore.";
+    }
     return null;
   }
 
@@ -86,7 +87,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       password: event.password,
     );
     if (err != null) {
-      emit(AuthFailure(err)); // ✅ DO NOT emit Unauthenticated after this
+      emit(AuthFailure(err)); 
       return;
     }
 
@@ -97,7 +98,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     } catch (e) {
       emit(
         AuthFailure(e.toString().replaceFirst("Exception: ", "")),
-      ); // ✅ keep failure
+      ); 
     }
   }
 

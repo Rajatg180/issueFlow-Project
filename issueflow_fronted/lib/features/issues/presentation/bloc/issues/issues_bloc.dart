@@ -5,7 +5,7 @@ import 'package:issueflow_fronted/features/issues/domain/usecase/get_projects_wi
 import 'package:issueflow_fronted/features/issues/domain/usecase/get_project_users_usecase.dart';
 import 'package:issueflow_fronted/features/issues/domain/usecase/update_issue_usecase.dart';
 
-import '../../../../core/errors/app_exception.dart';
+import '../../../../../core/errors/app_exception.dart';
 import 'issues_event.dart';
 import 'issues_state.dart';
 

@@ -1,3 +1,5 @@
+import 'package:issueflow_fronted/features/issues/domain/entities/issue_comment_entity.dart';
+
 import '../entities/issue_entity.dart';
 import '../entities/project_user_entity.dart';
 import '../entities/project_with_issues_entity.dart';
@@ -16,7 +18,6 @@ abstract class IssuesRepository {
 
   Future<List<ProjectUserEntity>> getProjectUsers({required String projectId});
 
-  // ✅ NEW
   Future<void> updateIssue({
     required String projectId,
     required String issueId,
@@ -33,6 +34,17 @@ abstract class IssuesRepository {
   Future<void> deleteIssue({
     required String projectId,
     required String issueId,
+  });
+
+   Future<List<IssueCommentEntity>> getIssueComments({
+    required String projectId,
+    required String issueId,
+  });
+
+  Future<IssueCommentEntity> createIssueComment({
+    required String projectId,
+    required String issueId,
+    required String body,
   });
   
 }

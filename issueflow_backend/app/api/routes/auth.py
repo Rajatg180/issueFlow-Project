@@ -39,7 +39,7 @@ def _unique_username(db: Session, base: str) -> str:
     candidate = base
     while db.exec(select(User).where(User.username == candidate)).first():
         suffix = str(random.randint(1000, 9999))
-        candidate = f"{base[: max(0, 32 - 5)]}_{suffix}"  # "_" + 4 digits
+        candidate = f"{base[: max(0, 32 - 5)]}_{suffix}" 
     return candidate
 
 

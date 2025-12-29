@@ -15,6 +15,7 @@ class IssueModel extends IssueEntity {
     required super.createdAt,
     required super.updatedAt,
     required super.assignee,
+    required super.commentsCount,
   });
 
   factory IssueModel.fromJson(Map<String, dynamic> json) {
@@ -36,6 +37,9 @@ class IssueModel extends IssueEntity {
       assignee: (assigneeRaw is Map)
           ? UserMiniModel.fromJson(assigneeRaw.cast<String, dynamic>())
           : null,
+      commentsCount: (json['comments_count'] is int)
+        ? (json['comments_count'] as int)
+        : int.tryParse((json['comments_count'] ?? '0').toString()) ?? 0,
     );
   }
 }

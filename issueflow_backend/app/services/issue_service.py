@@ -1,5 +1,6 @@
 from __future__ import annotations
 from datetime import date, datetime
+from app.models.issue_comment import IssueComment
 from sqlmodel import Session, select
 from app.models.project_member import ProjectMember
 from app.models.issue import Issue, IssuePriority, IssueType
@@ -225,6 +226,16 @@ def delete_issue_service(
     ).first()
     if not issue:
         raise ValueError("Issue not found")
+
+    # Delete associated comments
+    comments = db.exec(
+        select(IssueComment).where(
+            IssueComment.project_id == project.id,
+            IssueComment.issue_id == issue.id,
+        )
+    ).all()
+    for comment in comments:
+        db.delete(comment)
 
     db.delete(issue)
     db.commit()

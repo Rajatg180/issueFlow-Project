@@ -1,3 +1,5 @@
+import 'package:issueflow_fronted/features/issues/domain/entities/issue_comment_entity.dart';
+
 import '../../../../core/errors/app_exception.dart';
 import '../../domain/entities/issue_entity.dart';
 import '../../domain/entities/project_user_entity.dart';
@@ -57,7 +59,6 @@ class IssuesRepositoryImpl implements IssuesRepository {
     }
   }
 
-  // ✅ NEW
   @override
   Future<void> updateIssue({
     required String projectId,
@@ -106,6 +107,40 @@ class IssuesRepositoryImpl implements IssuesRepository {
       rethrow;
     } catch (_) {
       throw const AppException("Something went wrong while deleting issue");
+    }
+  }
+
+
+   @override
+  Future<List<IssueCommentEntity>> getIssueComments({
+    required String projectId,
+    required String issueId,
+  }) async {
+    try {
+      return await remote.getIssueComments(projectId: projectId, issueId: issueId);
+    } on AppException {
+      rethrow;
+    } catch (_) {
+      throw const AppException("Something went wrong while loading comments");
+    }
+  }
+
+  @override
+  Future<IssueCommentEntity> createIssueComment({
+    required String projectId,
+    required String issueId,
+    required String body,
+  }) async {
+    try {
+      return await remote.createIssueComment(
+        projectId: projectId,
+        issueId: issueId,
+        body: body,
+      );
+    } on AppException {
+      rethrow;
+    } catch (_) {
+      throw const AppException("Something went wrong while creating comment");
     }
   }
 }

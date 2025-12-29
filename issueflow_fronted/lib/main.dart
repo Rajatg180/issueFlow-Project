@@ -1,6 +1,7 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:issueflow_fronted/features/issues/presentation/bloc/comments/comments_bloc.dart';
 import 'package:issueflow_fronted/features/onboarding/presentation/bloc/onboarding_bloc.dart';
 import 'package:issueflow_fronted/features/projects/presentation/bloc/invite/invites_bloc.dart';
 import 'package:issueflow_fronted/features/projects/presentation/cubit/invite_members_cubit.dart';
@@ -13,7 +14,7 @@ import 'core/theme/app_theme.dart';
 import 'features/auth/presentation/bloc/auth_bloc.dart';
 import 'features/auth/presentation/bloc/auth_event.dart';
 import 'features/shell/presentation/bloc/shell_bloc.dart';
-import 'package:issueflow_fronted/features/issues/presentation/bloc/issues_bloc.dart';
+import 'package:issueflow_fronted/features/issues/presentation/bloc/issues/issues_bloc.dart';
 
 
 Future<void> main() async {
@@ -43,6 +44,7 @@ class IssueFlowApp extends StatelessWidget {
         BlocProvider(create: (_) => sl<InvitesBloc>()),
         BlocProvider(create: (_) => sl<InviteMembersCubit>()),
         BlocProvider(create: (_) => sl<IssuesBloc>()),
+        BlocProvider(create: (_) => sl<CommentsBloc>()),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,

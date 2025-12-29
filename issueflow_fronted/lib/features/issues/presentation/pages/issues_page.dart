@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/widgets/app_toast.dart';
-import '../bloc/issues_bloc.dart';
-import '../bloc/issues_event.dart';
-import '../bloc/issues_state.dart';
+import '../bloc/issues/issues_bloc.dart';
+import '../bloc/issues/issues_event.dart';
+import '../bloc/issues/issues_state.dart';
 import '../widgets/create_issue_dialog.dart';
 import '../widgets/project_issues_tile.dart';
 
@@ -18,7 +18,6 @@ class _IssuesTablePageState extends State<IssuesTablePage> {
   @override
   void initState() {
     super.initState();
-    print("Loading issues page");
     context.read<IssuesBloc>().add(const IssuesLoadRequested());
   }
 
