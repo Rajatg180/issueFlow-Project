@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
-import '../../../../core/theme/app_colors.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
-/// DashboardPage (UI-only v1)
-/// - Shows quick stats cards
-/// - Shows "Recent Activity" list
-/// - Shows "My Work" section placeholders
-///
-/// Later:
-/// - Replace dummy numbers with API data
-/// - Wire actions to Projects/Issues tab via ShellBloc
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/app_toast.dart';
+import '../../../../core/di/service_locator.dart'; // where `sl` is defined
+import '../bloc/dashboard_bloc.dart';
+import '../bloc/dashboard_event.dart';
+import '../bloc/dashboard_state.dart';
+
 class DashboardPage extends StatelessWidget {
   const DashboardPage({super.key});
 
@@ -16,201 +15,208 @@ class DashboardPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final t = Theme.of(context);
 
-    return SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 1200),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Page header
-                Text('Dashboard', style: t.textTheme.titleLarge),
-                const SizedBox(height: 6),
-                Text(
-                  'Overview of your projects and issues (UI-only for now).',
-                  style: t.textTheme.bodySmall,
-                ),
-                const SizedBox(height: 18),
+    return BlocProvider(
+      create: (_) => sl<DashboardBloc>()..add(LoadDashboardHome()),
+      child: BlocListener<DashboardBloc, DashboardState>(
+        listener: (context, state) {
+          if (state is DashboardError) {
+            AppToast.show(context, message: state.message, isError: true);
+          }
+        },
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 1200),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Dashboard', style: t.textTheme.titleLarge),
+                    const SizedBox(height: 6),
+                    Text(
+                      'Overview of your projects and issues.',
+                      style: t.textTheme.bodySmall,
+                    ),
+                    const SizedBox(height: 18),
 
-                // Stats row
-                LayoutBuilder(
-                  builder: (context, constraints) {
-                    final isNarrow = constraints.maxWidth < 900;
+                    BlocBuilder<DashboardBloc, DashboardState>(
+                      builder: (context, state) {
+                        if (state is DashboardInitial || state is DashboardLoading) {
+                          return const _LoadingBox();
+                        }
 
-                    final cards = <Widget>[
-                      _StatCard(
-                        title: 'Open Issues',
-                        value: '12',
-                        subtitle: 'Across all projects',
-                        icon: Icons.bug_report_outlined,
-                      ),
-                      _StatCard(
-                        title: 'In Progress',
-                        value: '5',
-                        subtitle: 'Assigned to you',
-                        icon: Icons.play_circle_outline,
-                      ),
-                      _StatCard(
-                        title: 'Due Soon',
-                        value: '3',
-                        subtitle: 'Next 7 days',
-                        icon: Icons.event_outlined,
-                      ),
-                      _StatCard(
-                        title: 'Projects',
-                        value: '2',
-                        subtitle: 'You own / joined',
-                        icon: Icons.workspaces_outline,
-                      ),
-                    ];
+                        if (state is DashboardError) {
+                          return _ErrorBox(
+                            message: state.message,
+                            onRetry: () => context.read<DashboardBloc>().add(LoadDashboardHome()),
+                          );
+                        }
 
-                    if (isNarrow) {
-                      // On small width, show cards in 2 columns
-                      return Wrap(
-                        spacing: 12,
-                        runSpacing: 12,
-                        children: cards
-                            .map(
-                              (c) => SizedBox(
-                                width: (constraints.maxWidth - 12) / 2,
-                                child: c,
-                              ),
-                            )
-                            .toList(),
-                      );
-                    }
+                        final data = (state as DashboardLoaded).data;
 
-                    // On wide, show in a row
-                    return Row(
-                      children: cards
-                          .map((c) => Expanded(child: Padding(
-                                padding: const EdgeInsets.only(right: 12),
-                                child: c,
-                              )))
-                          .toList()
-                        ..removeLast(), // remove last extra padding
-                    );
-                  },
-                ),
+                        final openIssues =
+                            (data.summary.byStatus['todo'] ?? 0) + (data.summary.byStatus['in_progress'] ?? 0);
 
-                const SizedBox(height: 18),
+                        final inProgressAssigned =
+                            data.myAssigned.where((i) => i.status == 'in_progress').length;
 
-                // Main grid: Activity + My Work
-                LayoutBuilder(
-                  builder: (context, constraints) {
-                    final isNarrow = constraints.maxWidth < 900;
+                        final dueSoonCount = data.dueSoon.length;
+                        final projectsCount = data.summary.projectsCount;
 
-                    final left = _SectionCard(
-                      title: 'Recent Activity',
-                      subtitle: 'Latest changes (dummy for now)',
-                      child: Column(
-                        children: const [
-                          _ActivityTile(
-                            title: 'IF-12 • Fix login validation',
-                            subtitle: 'Moved to In Progress • 2h ago',
-                            icon: Icons.bolt_outlined,
-                          ),
-                          _ActivityTile(
-                            title: 'IF-11 • Create onboarding flow',
-                            subtitle: 'Marked Done • Yesterday',
-                            icon: Icons.check_circle_outline,
-                          ),
-                          _ActivityTile(
-                            title: 'IF-10 • Setup project keys',
-                            subtitle: 'Created • 2 days ago',
-                            icon: Icons.add_circle_outline,
-                          ),
-                        ],
-                      ),
-                    );
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Stats row
+                            LayoutBuilder(
+                              builder: (context, constraints) {
+                                final isNarrow = constraints.maxWidth < 900;
 
-                    final right = _SectionCard(
-                      title: 'My Work',
-                      subtitle: 'What you should focus on next',
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _PillRow(
-                            pills: const [
-                              _Pill(label: 'Assigned: 5'),
-                              _Pill(label: 'Mentions: 0'),
-                              _Pill(label: 'Watching: 2'),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          _EmptyHint(
-                            title: 'No smart filters yet',
-                            subtitle:
-                                'Later we will add Jira-like filters, search, and quick actions.',
-                          ),
-                          const SizedBox(height: 12),
-                          _QuickActionsRow(
-                            actions: [
-                              _QuickAction(
-                                icon: Icons.add,
-                                label: 'Create Issue',
-                                onTap: () {
-                                  // Later: open create issue dialog/page
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Create Issue (coming soon)'),
-                                    ),
+                                final cards = <Widget>[
+                                  _StatCard(
+                                    title: 'Open Issues',
+                                    value: '$openIssues',
+                                    subtitle: 'Across all projects',
+                                    icon: Icons.bug_report_outlined,
+                                  ),
+                                  _StatCard(
+                                    title: 'In Progress',
+                                    value: '$inProgressAssigned',
+                                    subtitle: 'Assigned to you',
+                                    icon: Icons.play_circle_outline,
+                                  ),
+                                  _StatCard(
+                                    title: 'Due Soon',
+                                    value: '$dueSoonCount',
+                                    subtitle: 'Next 7 days',
+                                    icon: Icons.event_outlined,
+                                  ),
+                                  _StatCard(
+                                    title: 'Projects',
+                                    value: '$projectsCount',
+                                    subtitle: 'You own / joined',
+                                    icon: Icons.workspaces_outline,
+                                  ),
+                                ];
+
+                                if (isNarrow) {
+                                  return Wrap(
+                                    spacing: 12,
+                                    runSpacing: 12,
+                                    children: cards
+                                        .map((c) => SizedBox(
+                                              width: (constraints.maxWidth - 12) / 2,
+                                              child: c,
+                                            ))
+                                        .toList(),
                                   );
-                                },
-                              ),
-                              _QuickAction(
-                                icon: Icons.workspaces_outline,
-                                label: 'Go to Projects',
-                                onTap: () {
-                                  // Later: switch tab via ShellBloc
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Projects tab (use ShellBloc later)'),
-                                    ),
-                                  );
-                                },
-                              ),
-                              _QuickAction(
-                                icon: Icons.bug_report_outlined,
-                                label: 'Go to Issues',
-                                onTap: () {
-                                  // Later: switch tab via ShellBloc
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Issues tab (use ShellBloc later)'),
-                                    ),
-                                  );
-                                },
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    );
+                                }
 
-                    if (isNarrow) {
-                      return Column(
-                        children: [
-                          left,
-                          const SizedBox(height: 12),
-                          right,
-                        ],
-                      );
-                    }
+                                return Row(
+                                  children: [
+                                    Expanded(child: Padding(padding: const EdgeInsets.only(right: 12), child: cards[0])),
+                                    Expanded(child: Padding(padding: const EdgeInsets.only(right: 12), child: cards[1])),
+                                    Expanded(child: Padding(padding: const EdgeInsets.only(right: 12), child: cards[2])),
+                                    Expanded(child: cards[3]),
+                                  ],
+                                );
+                              },
+                            ),
 
-                    return Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(flex: 3, child: left),
-                        const SizedBox(width: 12),
-                        Expanded(flex: 2, child: right),
-                      ],
-                    );
-                  },
+                            const SizedBox(height: 18),
+
+                            // Activity + My Work
+                            LayoutBuilder(
+                              builder: (context, constraints) {
+                                final isNarrow = constraints.maxWidth < 900;
+
+                                final left = _SectionCard(
+                                  title: 'Recent Activity',
+                                  subtitle: 'Latest comments across your projects',
+                                  child: data.recentActivity.isEmpty
+                                      ? const _EmptyHint(
+                                          title: 'No activity yet',
+                                          subtitle: 'Once comments are added, they will show up here.',
+                                        )
+                                      : Column(
+                                          children: data.recentActivity.map((a) {
+                                            return _ActivityTile(
+                                              title: '${a.issueKey} • ${a.issueTitle}',
+                                              subtitle: '${a.authorUsername}: ${a.body}\n${_timeAgo(a.createdAt)}',
+                                              icon: Icons.chat_bubble_outline,
+                                            );
+                                          }).toList(),
+                                        ),
+                                );
+
+                                final right = _SectionCard(
+                                  title: 'My Work',
+                                  subtitle: 'Assigned issues (quick view)',
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      _PillRow(
+                                        pills: [
+                                          _Pill(label: 'Assigned: ${data.myAssigned.length}'),
+                                          _Pill(label: 'Due Soon: ${data.dueSoon.length}'),
+                                          _Pill(label: 'Overdue: ${data.overdue.length}'),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 12),
+                                      if (data.overdue.isNotEmpty)
+                                        _EmptyHint(
+                                          title: 'Overdue',
+                                          subtitle: data.overdue
+                                              .take(3)
+                                              .map((e) => '${e.key} • ${e.title}')
+                                              .join('\n'),
+                                        )
+                                      else
+                                        const _EmptyHint(
+                                          title: 'No overdue issues',
+                                          subtitle: 'Nice. Keep it up.',
+                                        ),
+                                      const SizedBox(height: 12),
+                                      _QuickActionsRow(
+                                        actions: [
+                                          _QuickAction(
+                                            icon: Icons.refresh,
+                                            label: 'Refresh',
+                                            onTap: () => context.read<DashboardBloc>().add(RefreshDashboardHome()),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                );
+
+                                if (isNarrow) {
+                                  return Column(
+                                    children: [
+                                      left,
+                                      const SizedBox(height: 12),
+                                      right,
+                                    ],
+                                  );
+                                }
+
+                                return Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Expanded(flex: 3, child: left),
+                                    const SizedBox(width: 12),
+                                    Expanded(flex: 2, child: right),
+                                  ],
+                                );
+                              },
+                            ),
+                          ],
+                        );
+                      },
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         ),
@@ -219,7 +225,68 @@ class DashboardPage extends StatelessWidget {
   }
 }
 
-/// ---------- Small reusable UI widgets below ----------
+String _timeAgo(DateTime dt) {
+  final diff = DateTime.now().difference(dt);
+  if (diff.inMinutes < 1) return 'Just now';
+  if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
+  if (diff.inHours < 24) return '${diff.inHours}h ago';
+  return '${diff.inDays}d ago';
+}
+
+/// --- small helpers ---
+
+class _LoadingBox extends StatelessWidget {
+  const _LoadingBox();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: const Row(
+        children: [
+          SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2)),
+          SizedBox(width: 10),
+          Expanded(child: Text('Loading dashboard...')),
+        ],
+      ),
+    );
+  }
+}
+
+class _ErrorBox extends StatelessWidget {
+  final String message;
+  final VoidCallback onRetry;
+
+  const _ErrorBox({required this.message, required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.error_outline, color: AppColors.textSecondary),
+          const SizedBox(width: 10),
+          Expanded(child: Text(message)),
+          const SizedBox(width: 10),
+          TextButton(onPressed: onRetry, child: const Text('Retry')),
+        ],
+      ),
+    );
+  }
+}
+
+/// ✅ Reuse your existing UI widgets below (same as your UI-only v1)
 
 class _StatCard extends StatelessWidget {
   final String title;
@@ -391,11 +458,7 @@ class _QuickActionsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 10,
-      runSpacing: 10,
-      children: actions,
-    );
+    return Wrap(spacing: 10, runSpacing: 10, children: actions);
   }
 }
 
@@ -442,11 +505,7 @@ class _PillRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 8,
-      children: pills,
-    );
+    return Wrap(spacing: 8, runSpacing: 8, children: pills);
   }
 }
 
@@ -464,10 +523,7 @@ class _Pill extends StatelessWidget {
         borderRadius: BorderRadius.circular(999),
         border: Border.all(color: AppColors.border),
       ),
-      child: Text(
-        label,
-        style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
-      ),
+      child: Text(label, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
     );
   }
 }

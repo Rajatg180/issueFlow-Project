@@ -1,5 +1,10 @@
 import 'package:get_it/get_it.dart';
 import 'package:http/http.dart' as http;
+import 'package:issueflow_fronted/features/dashboard/data/datasources/dashboard_remote_datasource.dart';
+import 'package:issueflow_fronted/features/dashboard/data/repositories/dashboard_repository_impl.dart';
+import 'package:issueflow_fronted/features/dashboard/domain/repositories/dashboard_repository.dart';
+import 'package:issueflow_fronted/features/dashboard/domain/usecases/get_dashboard_home_usecase.dart';
+import 'package:issueflow_fronted/features/dashboard/presentation/bloc/dashboard_bloc.dart';
 import 'package:issueflow_fronted/features/issues/domain/usecase/create_issue_comment_usecase.dart';
 import 'package:issueflow_fronted/features/issues/domain/usecase/create_issue_usecase.dart';
 import 'package:issueflow_fronted/features/issues/domain/usecase/delete_issue_comment_usecase.dart';
@@ -282,4 +287,31 @@ Future<void> setupServiceLocator() async {
       deleteComment: sl<DeleteIssueCommentUseCase>(),
     ),
   );
+    // =========================================================
+  // ✅ DASHBOARD FEATURE
+  // =========================================================
+
+  // DataSource
+  sl.registerLazySingleton<DashboardRemoteDataSource>(
+    () => DashboardRemoteDataSourceImpl(
+      client: sl<http.Client>(),
+      tokenStorage: sl<TokenStorage>(),
+    ),
+  );
+
+  // Repository
+  sl.registerLazySingleton<DashboardRepository>(
+    () => DashboardRepositoryImpl(remote: sl<DashboardRemoteDataSource>()),
+  );
+
+  // UseCase
+  sl.registerLazySingleton<GetDashboardHomeUseCase>(
+    () => GetDashboardHomeUseCase(sl<DashboardRepository>()),
+  );
+
+  // Bloc
+  sl.registerFactory<DashboardBloc>(
+    () => DashboardBloc(getHome: sl<GetDashboardHomeUseCase>()),
+  );
+
 }

@@ -1,6 +1,7 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:issueflow_fronted/features/dashboard/presentation/bloc/dashboard_bloc.dart';
 import 'package:issueflow_fronted/features/issues/presentation/bloc/comments/comments_bloc.dart';
 import 'package:issueflow_fronted/features/onboarding/presentation/bloc/onboarding_bloc.dart';
 import 'package:issueflow_fronted/features/projects/presentation/bloc/invite/invites_bloc.dart';
@@ -16,13 +17,10 @@ import 'features/auth/presentation/bloc/auth_event.dart';
 import 'features/shell/presentation/bloc/shell_bloc.dart';
 import 'package:issueflow_fronted/features/issues/presentation/bloc/issues/issues_bloc.dart';
 
-
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
 
   await setupServiceLocator();
   runApp(const IssueFlowApp());
@@ -45,6 +43,7 @@ class IssueFlowApp extends StatelessWidget {
         BlocProvider(create: (_) => sl<InviteMembersCubit>()),
         BlocProvider(create: (_) => sl<IssuesBloc>()),
         BlocProvider(create: (_) => sl<CommentsBloc>()),
+        BlocProvider(create: (_) => sl<DashboardBloc>()),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
