@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_palette.dart';
 import '../../../projects/presentation/bloc/project/projects_bloc.dart';
 import '../../../projects/presentation/bloc/project/projects_state.dart';
 import '../../nav_items.dart';
@@ -35,27 +35,29 @@ class _CompactRail extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.c;
+
     return BlocBuilder<ShellBloc, ShellState>(
       builder: (context, state) {
         final selectedIndex = navItems.indexWhere((e) => e.tab == state.selected);
 
         return NavigationRail(
           extended: false,
-          backgroundColor: AppColors.surface,
+          backgroundColor: c.surface,
           selectedIndex: selectedIndex,
           onDestinationSelected: (index) {
             context.read<ShellBloc>().add(ShellTabSelected(navItems[index].tab));
             onItemSelected?.call();
           },
-          leading: const Padding(
-            padding: EdgeInsets.symmetric(vertical: 12),
-            child: Icon(Icons.view_kanban_outlined, color: AppColors.textPrimary),
+          leading: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Icon(Icons.view_kanban_outlined, color: c.textPrimary),
           ),
           destinations: [
             for (final item in navItems)
               NavigationRailDestination(
                 icon: Icon(item.icon),
-                selectedIcon: Icon(item.icon, color: AppColors.textPrimary),
+                selectedIcon: Icon(item.icon, color: c.textPrimary),
                 label: Text(item.label),
               ),
           ],
@@ -74,9 +76,11 @@ class _FullSidebar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.c;
+
     return Container(
       width: 300,
-      color: AppColors.surface,
+      color: c.surface,
       child: SafeArea(
         child: Column(
           children: [
@@ -162,11 +166,13 @@ class _FullSidebar extends StatelessWidget {
 class _BrandHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final c = context.c;
+
     return Container(
       padding: const EdgeInsets.fromLTRB(14, 14, 14, 10),
       decoration: BoxDecoration(
         border: Border(
-          bottom: BorderSide(color: AppColors.border),
+          bottom: BorderSide(color: c.border),
         ),
       ),
       child: Row(
@@ -175,17 +181,17 @@ class _BrandHeader extends StatelessWidget {
             height: 36,
             width: 36,
             decoration: BoxDecoration(
-              color: AppColors.surface2,
+              color: c.surface2,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.border),
+              border: Border.all(color: c.border),
             ),
-            child: const Icon(Icons.view_kanban_outlined, color: AppColors.textPrimary),
+            child: Icon(Icons.view_kanban_outlined, color: c.textPrimary),
           ),
           const SizedBox(width: 10),
-          const Text(
+          Text(
             "IssueFlow",
             style: TextStyle(
-              color: AppColors.textPrimary,
+              color: c.textPrimary,
               fontWeight: FontWeight.w800,
               fontSize: 16,
             ),
@@ -202,12 +208,14 @@ class _SectionTitle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.c;
+
     return Padding(
       padding: const EdgeInsets.only(left: 2),
       child: Text(
         text.toUpperCase(),
-        style: const TextStyle(
-          color: AppColors.textSecondary,
+        style: TextStyle(
+          color: c.textSecondary,
           fontSize: 11,
           fontWeight: FontWeight.w800,
           letterSpacing: 0.8,
@@ -251,6 +259,8 @@ class _PinnedReorderListState extends State<_PinnedReorderList> {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.c;
+
     return ReorderableListView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -273,7 +283,7 @@ class _PinnedReorderListState extends State<_PinnedReorderList> {
           subtitle: p.key,
           leading: Icons.push_pin_rounded,
           leadingColor: Colors.red, // soft gold
-          trailing: const Icon(Icons.drag_handle, color: AppColors.textSecondary, size: 18),
+          trailing: Icon(Icons.drag_handle, color: c.textSecondary, size: 18),
           onTap: () => widget.onProjectTap(p.id),
         );
       },
@@ -301,6 +311,8 @@ class _ProjectRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.c;
+
     return InkWell(
       borderRadius: BorderRadius.circular(14),
       onTap: onTap,
@@ -308,9 +320,9 @@ class _ProjectRow extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
         margin: const EdgeInsets.only(bottom: 8),
         decoration: BoxDecoration(
-          color: AppColors.surface2,
+          color: c.surface2,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppColors.border),
+          border: Border.all(color: c.border),
         ),
         child: Row(
           children: [
@@ -324,8 +336,8 @@ class _ProjectRow extends StatelessWidget {
                     title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: AppColors.textPrimary,
+                    style: TextStyle(
+                      color: c.textPrimary,
                       fontWeight: FontWeight.w800,
                       fontSize: 13,
                     ),
@@ -333,8 +345,8 @@ class _ProjectRow extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     subtitle,
-                    style: const TextStyle(
-                      color: AppColors.textSecondary,
+                    style: TextStyle(
+                      color: c.textSecondary,
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
                     ),
@@ -368,6 +380,8 @@ class _NavRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.c;
+
     return InkWell(
       borderRadius: BorderRadius.circular(14),
       onTap: onTap,
@@ -375,19 +389,19 @@ class _NavRow extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
         margin: const EdgeInsets.only(bottom: 8),
         decoration: BoxDecoration(
-          color: selected ? AppColors.surface2 : Colors.transparent,
+          color: selected ? c.surface2 : Colors.transparent,
           borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: selected ? AppColors.border : Colors.transparent),
+          border: Border.all(color: selected ? c.border : Colors.transparent),
         ),
         child: Row(
           children: [
-            Icon(icon, color: selected ? AppColors.textPrimary : AppColors.textSecondary, size: 20),
+            Icon(icon, color: selected ? c.textPrimary : c.textSecondary, size: 20),
             const SizedBox(width: 10),
             Expanded(
               child: Text(
                 label,
                 style: TextStyle(
-                  color: selected ? AppColors.textPrimary : AppColors.textSecondary,
+                  color: selected ? c.textPrimary : c.textSecondary,
                   fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
                 ),
               ),

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_palette.dart';
 import '../../../../core/widgets/app_toast.dart';
 import '../../../../core/di/service_locator.dart'; // where `sl` is defined
 import '../bloc/dashboard_bloc.dart';
@@ -240,18 +240,29 @@ class _LoadingBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.c;
+
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: c.surface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: c.border),
       ),
-      child: const Row(
+      child: Row(
         children: [
-          SizedBox(height: 18, width: 18, child: CircularProgressIndicator(strokeWidth: 2)),
-          SizedBox(width: 10),
-          Expanded(child: Text('Loading dashboard...')),
+          SizedBox(
+            height: 18,
+            width: 18,
+            child: CircularProgressIndicator(strokeWidth: 2, color: c.primary),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Loading dashboard...',
+              style: TextStyle(color: c.textPrimary),
+            ),
+          ),
         ],
       ),
     );
@@ -266,18 +277,25 @@ class _ErrorBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.c;
+
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: c.surface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: c.border),
       ),
       child: Row(
         children: [
-          const Icon(Icons.error_outline, color: AppColors.textSecondary),
+          Icon(Icons.error_outline, color: c.textSecondary),
           const SizedBox(width: 10),
-          Expanded(child: Text(message)),
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(color: c.textPrimary),
+            ),
+          ),
           const SizedBox(width: 10),
           TextButton(onPressed: onRetry, child: const Text('Retry')),
         ],
@@ -304,13 +322,14 @@ class _StatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context);
+    final c = context.c;
 
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: c.surface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: c.border),
       ),
       child: Row(
         children: [
@@ -318,11 +337,11 @@ class _StatCard extends StatelessWidget {
             height: 38,
             width: 38,
             decoration: BoxDecoration(
-              color: AppColors.surface2,
+              color: c.surface2,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.border),
+              border: Border.all(color: c.border),
             ),
-            child: Icon(icon, color: AppColors.textSecondary, size: 20),
+            child: Icon(icon, color: c.textSecondary, size: 20),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -357,13 +376,14 @@ class _SectionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context);
+    final c = context.c;
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: c.surface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: c.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -393,18 +413,19 @@ class _ActivityTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context);
+    final c = context.c;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.surface2,
+        color: c.surface2,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: c.border),
       ),
       child: Row(
         children: [
-          Icon(icon, color: AppColors.textSecondary, size: 18),
+          Icon(icon, color: c.textSecondary, size: 18),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
@@ -431,13 +452,14 @@ class _EmptyHint extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context);
+    final c = context.c;
 
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.surface2,
+        color: c.surface2,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: c.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -475,22 +497,24 @@ class _QuickAction extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.c;
+
     return InkWell(
       borderRadius: BorderRadius.circular(12),
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
-          color: AppColors.surface2,
+          color: c.surface2,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.border),
+          border: Border.all(color: c.border),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: AppColors.textSecondary, size: 18),
+            Icon(icon, color: c.textSecondary, size: 18),
             const SizedBox(width: 8),
-            Text(label, style: const TextStyle(color: AppColors.textPrimary, fontSize: 13)),
+            Text(label, style: TextStyle(color: c.textPrimary, fontSize: 13)),
           ],
         ),
       ),
@@ -516,14 +540,16 @@ class _Pill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.c;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: AppColors.surface2,
+        color: c.surface2,
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: c.border),
       ),
-      child: Text(label, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+      child: Text(label, style: TextStyle(color: c.textSecondary, fontSize: 12)),
     );
   }
 }

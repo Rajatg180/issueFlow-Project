@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 import '../../../../core/di/service_locator.dart';
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_palette.dart';
 import '../../../../core/widgets/app_toast.dart';
 import '../../../auth/presentation/bloc/auth_bloc.dart';
 import '../../../auth/presentation/bloc/auth_event.dart';
@@ -202,12 +202,14 @@ class _OnboardingPageState extends State<OnboardingPage> {
   }
 
   Widget _progressDots() {
+    final c = context.c;
+
     Widget dot(bool active) => Container(
           width: active ? 18 : 8,
           height: 8,
           margin: const EdgeInsets.only(right: 8),
           decoration: BoxDecoration(
-            color: active ? AppColors.primary : AppColors.border,
+            color: active ? c.primary : c.border,
             borderRadius: BorderRadius.circular(999),
           ),
         );
@@ -222,12 +224,14 @@ class _OnboardingPageState extends State<OnboardingPage> {
   }
 
   Widget _card(Widget child) {
+    final c = context.c;
+
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: c.surface,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: c.border),
       ),
       child: child,
     );
@@ -300,7 +304,6 @@ class _OnboardingPageState extends State<OnboardingPage> {
                             ],
                           )
                         : SingleChildScrollView(
-                            // ✅ this prevents overflow on mobile when keyboard opens
                             padding: EdgeInsets.only(bottom: bottomInset),
                             child: Column(
                               children: [
@@ -347,18 +350,20 @@ class _OnboardingPageState extends State<OnboardingPage> {
   }
 
   Widget _checkRow(bool done, String text) {
+    final c = context.c;
+
     return Row(
       children: [
         Icon(
           done ? Icons.check_circle : Icons.radio_button_unchecked,
           size: 18,
-          color: done ? AppColors.primary : AppColors.textSecondary,
+          color: done ? c.primary : c.textSecondary,
         ),
         const SizedBox(width: 10),
         Expanded(
           child: Text(
             text,
-            style: const TextStyle(color: AppColors.textPrimary, fontSize: 13),
+            style: TextStyle(color: c.textPrimary, fontSize: 13),
           ),
         )
       ],
@@ -366,6 +371,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
   }
 
   Widget _rightStepPanel(BuildContext context, bool isLoading) {
+    final c = context.c;
+
     return _card(
       Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -393,7 +400,6 @@ class _OnboardingPageState extends State<OnboardingPage> {
             ),
           ],
 
-          // ✅ ONLY THIS STEP UI IS UPDATED
           if (step == 1) ...[
             _stepHeader(context, 'Invite members', 'Add teammates by email (optional).'),
             const SizedBox(height: 16),
@@ -401,9 +407,9 @@ class _OnboardingPageState extends State<OnboardingPage> {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: AppColors.surface2,
+                color: c.surface2,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.border),
+                border: Border.all(color: c.border),
               ),
               child: Row(
                 children: [
@@ -445,7 +451,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                       (e) => Chip(
                         label: Text(e),
                         onDeleted: isLoading ? null : () => _removeInviteEmail(e),
-                        deleteIconColor: AppColors.textSecondary,
+                        deleteIconColor: c.textSecondary,
                       ),
                     )
                     .toList(),
@@ -453,9 +459,9 @@ class _OnboardingPageState extends State<OnboardingPage> {
               const SizedBox(height: 8),
             ],
 
-            const Text(
+            Text(
               'Tip: you can invite later from Project settings.',
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+              style: TextStyle(color: c.textSecondary, fontSize: 12),
             ),
 
             // keep original controller present (so no behavior changes)
@@ -544,27 +550,28 @@ class _OnboardingPageState extends State<OnboardingPage> {
   }
 
   Widget _dueDateRow(bool isLoading) {
+    final c = context.c;
     final label = (dueDate == null) ? "None" : _fmtDate(dueDate!);
 
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.surface2,
+        color: c.surface2,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: c.border),
       ),
       child: Row(
         children: [
-          const Icon(Icons.event, size: 18, color: AppColors.textSecondary),
+          Icon(Icons.event, size: 18, color: c.textSecondary),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   "Due date",
                   style: TextStyle(
-                    color: AppColors.textPrimary,
+                    color: c.textPrimary,
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
                   ),
@@ -572,7 +579,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                 const SizedBox(height: 2),
                 Text(
                   label,
-                  style: const TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                  style: TextStyle(color: c.textSecondary, fontSize: 12),
                 ),
               ],
             ),

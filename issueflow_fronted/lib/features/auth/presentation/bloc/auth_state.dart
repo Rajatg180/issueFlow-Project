@@ -30,10 +30,12 @@ class AuthFailure extends AuthState {
 
 class Authenticated extends AuthState {
   final String email;
+  final String? username;
   final bool hasCompletedOnboarding;
 
   const Authenticated({
     required this.email,
+    this.username,
     required this.hasCompletedOnboarding,
   });
 

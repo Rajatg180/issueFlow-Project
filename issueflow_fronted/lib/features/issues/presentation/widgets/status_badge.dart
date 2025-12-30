@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_palette.dart';
 
 class StatusBadge extends StatelessWidget {
   final String status; // todo/in_progress/done
@@ -8,6 +8,7 @@ class StatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.c;
     final s = status.toLowerCase();
 
     Color bg;
@@ -16,18 +17,18 @@ class StatusBadge extends StatelessWidget {
 
     switch (s) {
       case 'done':
-        bg = AppColors.success.withOpacity(0.15);
-        border = AppColors.success.withOpacity(0.5);
+        bg = c.success.withOpacity(0.15);
+        border = c.success.withOpacity(0.5);
         label = 'Done';
         break;
       case 'in_progress':
-        bg = AppColors.info.withOpacity(0.15);
-        border = AppColors.info.withOpacity(0.5);
+        bg = c.info.withOpacity(0.15);
+        border = c.info.withOpacity(0.5);
         label = 'In Progress';
         break;
       default:
-        bg = AppColors.surface2;
-        border = AppColors.border;
+        bg = c.surface2;
+        border = c.border;
         label = 'To Do';
     }
 

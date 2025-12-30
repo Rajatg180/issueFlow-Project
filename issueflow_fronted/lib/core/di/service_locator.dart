@@ -30,9 +30,7 @@ import 'package:issueflow_fronted/features/projects/domain/usecases/update_proje
 import 'package:issueflow_fronted/features/projects/domain/usecases/update_project_usecase.dart';
 import 'package:issueflow_fronted/features/projects/presentation/bloc/invite/invites_bloc.dart';
 import 'package:issueflow_fronted/features/projects/presentation/cubit/invite_members_cubit.dart';
-
 import '../storage/token_storage.dart';
-
 import '../../features/auth/data/datasources/auth_remote_datasource.dart';
 import '../../features/auth/data/datasources/firebase_auth_service.dart';
 import '../../features/auth/data/repositories/auth_repository_impl.dart';
@@ -43,23 +41,21 @@ import '../../features/auth/domain/usecases/login_usecase.dart';
 import '../../features/auth/domain/usecases/logout_usecase.dart';
 import '../../features/auth/domain/usecases/register_usecase.dart';
 import '../../features/auth/presentation/bloc/auth_bloc.dart';
-
 import '../../features/onboarding/data/datasources/onboarding_remote_datasource.dart';
 import '../../features/onboarding/data/repositories/onboarding_repository_impl.dart';
 import '../../features/onboarding/domain/repositories/onboarding_repository.dart';
-
 import 'package:issueflow_fronted/features/projects/data/datasources/projects_remote_datasource.dart';
 import 'package:issueflow_fronted/features/projects/data/repositories/projects_repository_impl.dart';
 import 'package:issueflow_fronted/features/projects/domain/repositories/projects_repository.dart';
 import 'package:issueflow_fronted/features/projects/domain/usecases/create_project_usecase.dart';
 import 'package:issueflow_fronted/features/projects/domain/usecases/list_projects_usecase.dart';
 import 'package:issueflow_fronted/features/projects/presentation/bloc/project/projects_bloc.dart';
-
 import 'package:issueflow_fronted/features/issues/data/datasources/issues_remote_datasource.dart';
 import 'package:issueflow_fronted/features/issues/data/repositories/issues_repository_impl.dart';
 import 'package:issueflow_fronted/features/issues/domain/repositories/issues_repository.dart';
 import 'package:issueflow_fronted/features/issues/presentation/bloc/issues/issues_bloc.dart';
-
+import '../storage/theme_storage.dart';
+import '../theme/theme_cubit.dart';
 
 final sl = GetIt.instance;
 
@@ -98,11 +94,21 @@ Future<void> setupServiceLocator() async {
   // ---------------------------
   // AUTH - UseCases
   // ---------------------------
-  sl.registerLazySingleton<LoginUseCase>(() => LoginUseCase(sl<AuthRepository>()));
-  sl.registerLazySingleton<RegisterUseCase>(() => RegisterUseCase(sl<AuthRepository>()));
-  sl.registerLazySingleton<GetMeUseCase>(() => GetMeUseCase(sl<AuthRepository>()));
-  sl.registerLazySingleton<LogoutUseCase>(() => LogoutUseCase(sl<AuthRepository>()));
-  sl.registerLazySingleton<FirebaseLoginUseCase>(() => FirebaseLoginUseCase(sl<AuthRepository>()));
+  sl.registerLazySingleton<LoginUseCase>(
+    () => LoginUseCase(sl<AuthRepository>()),
+  );
+  sl.registerLazySingleton<RegisterUseCase>(
+    () => RegisterUseCase(sl<AuthRepository>()),
+  );
+  sl.registerLazySingleton<GetMeUseCase>(
+    () => GetMeUseCase(sl<AuthRepository>()),
+  );
+  sl.registerLazySingleton<LogoutUseCase>(
+    () => LogoutUseCase(sl<AuthRepository>()),
+  );
+  sl.registerLazySingleton<FirebaseLoginUseCase>(
+    () => FirebaseLoginUseCase(sl<AuthRepository>()),
+  );
 
   // ---------------------------
   // ONBOARDING - DataSources
@@ -173,13 +179,21 @@ Future<void> setupServiceLocator() async {
   // PROJECTS - UseCases
   // ✅ also made explicit (safe + consistent)
   // ---------------------------
-  sl.registerLazySingleton<ListProjectsUseCase>(() => ListProjectsUseCase(sl<ProjectsRepository>()));
-  sl.registerLazySingleton<CreateProjectUseCase>(() => CreateProjectUseCase(sl<ProjectsRepository>()));
-  sl.registerLazySingleton<DeleteProjectUseCase>(() => DeleteProjectUseCase(sl<ProjectsRepository>()));
+  sl.registerLazySingleton<ListProjectsUseCase>(
+    () => ListProjectsUseCase(sl<ProjectsRepository>()),
+  );
+  sl.registerLazySingleton<CreateProjectUseCase>(
+    () => CreateProjectUseCase(sl<ProjectsRepository>()),
+  );
+  sl.registerLazySingleton<DeleteProjectUseCase>(
+    () => DeleteProjectUseCase(sl<ProjectsRepository>()),
+  );
   sl.registerLazySingleton<UpdateProjectPreferenceUseCase>(
     () => UpdateProjectPreferenceUseCase(sl<ProjectsRepository>()),
   );
-  sl.registerLazySingleton<UpdateProjectUseCase>(()=> UpdateProjectUseCase(sl<ProjectsRepository>()));
+  sl.registerLazySingleton<UpdateProjectUseCase>(
+    () => UpdateProjectUseCase(sl<ProjectsRepository>()),
+  );
 
   // ---------------------------
   // PROJECTS - Bloc
@@ -204,9 +218,15 @@ Future<void> setupServiceLocator() async {
   );
 
   // UseCases (explicit)
-  sl.registerLazySingleton<ListMyInvitesUseCase>(() => ListMyInvitesUseCase(sl<InvitesRepository>()));
-  sl.registerLazySingleton<AcceptInviteUseCase>(() => AcceptInviteUseCase(sl<InvitesRepository>()));
-  sl.registerLazySingleton<InviteMembersUseCase>(() => InviteMembersUseCase(sl<InvitesRepository>()));
+  sl.registerLazySingleton<ListMyInvitesUseCase>(
+    () => ListMyInvitesUseCase(sl<InvitesRepository>()),
+  );
+  sl.registerLazySingleton<AcceptInviteUseCase>(
+    () => AcceptInviteUseCase(sl<InvitesRepository>()),
+  );
+  sl.registerLazySingleton<InviteMembersUseCase>(
+    () => InviteMembersUseCase(sl<InvitesRepository>()),
+  );
 
   // Bloc + Cubit
   sl.registerFactory<InvitesBloc>(
@@ -217,17 +237,10 @@ Future<void> setupServiceLocator() async {
   );
 
   sl.registerFactory<InviteMembersCubit>(
-    () => InviteMembersCubit(
-      inviteMembersUseCase: sl<InviteMembersUseCase>(),
-    ),
+    () => InviteMembersCubit(inviteMembersUseCase: sl<InviteMembersUseCase>()),
   );
 
-
-
-
-
-
-    // =========================================================
+  // =========================================================
   // ✅ ISSUES FEATURE
   // =========================================================
 
@@ -238,7 +251,6 @@ Future<void> setupServiceLocator() async {
       tokenStorage: sl<TokenStorage>(),
     ),
   );
-
 
   // Repository
   sl.registerLazySingleton<IssuesRepository>(
@@ -254,19 +266,33 @@ Future<void> setupServiceLocator() async {
     () => CreateIssueUseCase(sl<IssuesRepository>()),
   );
 
-  sl.registerLazySingleton<GetProjectUsersUseCase>(() => GetProjectUsersUseCase(sl<IssuesRepository>()));
+  sl.registerLazySingleton<GetProjectUsersUseCase>(
+    () => GetProjectUsersUseCase(sl<IssuesRepository>()),
+  );
 
-  sl.registerLazySingleton<UpdateIssueUseCase>(() => UpdateIssueUseCase(sl<IssuesRepository>()));
+  sl.registerLazySingleton<UpdateIssueUseCase>(
+    () => UpdateIssueUseCase(sl<IssuesRepository>()),
+  );
 
-  sl.registerLazySingleton<DeleteIssueUsecase>(() => DeleteIssueUsecase(sl<IssuesRepository>()));
+  sl.registerLazySingleton<DeleteIssueUsecase>(
+    () => DeleteIssueUsecase(sl<IssuesRepository>()),
+  );
 
-  sl.registerLazySingleton<GetIssueCommentsUseCase>(() => GetIssueCommentsUseCase(sl<IssuesRepository>()));
+  sl.registerLazySingleton<GetIssueCommentsUseCase>(
+    () => GetIssueCommentsUseCase(sl<IssuesRepository>()),
+  );
 
-  sl.registerLazySingleton<CreateIssueCommentUseCase>(() => CreateIssueCommentUseCase(sl<IssuesRepository>()));
+  sl.registerLazySingleton<CreateIssueCommentUseCase>(
+    () => CreateIssueCommentUseCase(sl<IssuesRepository>()),
+  );
 
-  sl.registerLazySingleton<UpdateIssueCommentUseCase>(() => UpdateIssueCommentUseCase(sl<IssuesRepository>()));
+  sl.registerLazySingleton<UpdateIssueCommentUseCase>(
+    () => UpdateIssueCommentUseCase(sl<IssuesRepository>()),
+  );
 
-  sl.registerLazySingleton<DeleteIssueCommentUseCase>(() => DeleteIssueCommentUseCase(sl<IssuesRepository>()));
+  sl.registerLazySingleton<DeleteIssueCommentUseCase>(
+    () => DeleteIssueCommentUseCase(sl<IssuesRepository>()),
+  );
 
   // Bloc
   sl.registerFactory<IssuesBloc>(
@@ -287,7 +313,7 @@ Future<void> setupServiceLocator() async {
       deleteComment: sl<DeleteIssueCommentUseCase>(),
     ),
   );
-    // =========================================================
+  // =========================================================
   // ✅ DASHBOARD FEATURE
   // =========================================================
 
@@ -314,4 +340,11 @@ Future<void> setupServiceLocator() async {
     () => DashboardBloc(getHome: sl<GetDashboardHomeUseCase>()),
   );
 
+  // ---------------------------
+  // THEME
+  // ---------------------------
+  sl.registerLazySingleton<ThemeStorage>(() => ThemeStorage());
+  sl.registerLazySingleton<ThemeCubit>(
+    () => ThemeCubit(storage: sl<ThemeStorage>()),
+  );
 }

@@ -3,7 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:issueflow_fronted/core/widgets/app_toast.dart';
 
-import '../../../../core/theme/app_colors.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
@@ -31,6 +30,7 @@ class _LoginPageState extends State<LoginPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final cs = theme.colorScheme;
 
     return BlocListener<AuthBloc, AuthState>(
       listener: (context, state) {
@@ -38,7 +38,6 @@ class _LoginPageState extends State<LoginPage> {
           AppToast.show(context, message: state.message, isError: true);
         }
 
-        // Optional: show success toast after auth (email/google)
         if (state is Authenticated) {
           AppToast.show(context, message: "Signed in successfully");
         }
@@ -52,9 +51,9 @@ class _LoginPageState extends State<LoginPage> {
               child: Container(
                 padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
-                  color: AppColors.surface,
+                  color: cs.surface,
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: AppColors.border),
+                  border: Border.all(color: theme.dividerColor),
                 ),
                 child: BlocBuilder<AuthBloc, AuthState>(
                   builder: (context, state) {
@@ -114,14 +113,12 @@ class _LoginPageState extends State<LoginPage> {
 
                         const SizedBox(height: 10),
 
-                        // ✅ Google OAuth Button (Firebase)
                         SizedBox(
                           height: 44,
                           child: OutlinedButton(
                             onPressed: isLoading
                                 ? null
                                 : () {
-                                    // Trigger Google login flow in Bloc
                                     context
                                         .read<AuthBloc>()
                                         .add(const AuthGoogleLoginRequested());

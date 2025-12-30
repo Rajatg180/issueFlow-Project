@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_palette.dart';
 import '../../../../core/widgets/app_toast.dart';
 import '../bloc/issues/issues_bloc.dart';
 import '../bloc/issues/issues_event.dart';
@@ -52,7 +52,6 @@ class _IssuesView extends StatelessWidget {
             ],
           ),
         ),
-
         Expanded(
           child: BlocConsumer<IssuesBloc, IssuesState>(
             listener: (context, state) {
@@ -84,16 +83,22 @@ class _IssuesView extends StatelessWidget {
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text(state.message),
+                            Text(
+                              state.message,
+                              style: TextStyle(color: context.c.textPrimary),
+                            ),
                             const SizedBox(height: 12),
                             OutlinedButton(
                               onPressed: () => context.read<IssuesBloc>().add(
-                                const IssuesLoadRequested(),
-                              ),
+                                    const IssuesLoadRequested(),
+                                  ),
                               child: const Text('Retry'),
                             ),
                             const SizedBox(height: 12),
-                            const Text('Pull down to refresh'),
+                            Text(
+                              'Pull down to refresh',
+                              style: TextStyle(color: context.c.textSecondary),
+                            ),
                           ],
                         ),
                       ),
@@ -115,16 +120,22 @@ class _IssuesView extends StatelessWidget {
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Text('No projects found.'),
+                            Text(
+                              'No projects found.',
+                              style: TextStyle(color: context.c.textPrimary),
+                            ),
                             const SizedBox(height: 12),
                             OutlinedButton(
                               onPressed: () => context.read<IssuesBloc>().add(
-                                const IssuesLoadRequested(),
-                              ),
+                                    const IssuesLoadRequested(),
+                                  ),
                               child: const Text('Refresh'),
                             ),
                             const SizedBox(height: 12),
-                            const Text('Pull down to refresh'),
+                            Text(
+                              'Pull down to refresh',
+                              style: TextStyle(color: context.c.textSecondary),
+                            ),
                           ],
                         ),
                       ),
@@ -148,22 +159,22 @@ class _IssuesView extends StatelessWidget {
                       isCreating: s.isCreating,
                       projectUsers: s.projectUsers[p.id] ?? const [],
                       onToggle: () => context.read<IssuesBloc>().add(
-                        IssuesProjectToggled(p.id),
-                      ),
+                            IssuesProjectToggled(p.id),
+                          ),
                       onCreateIssue: () async {
                         final result = await CreateIssueDialog.open(context);
                         if (result == null) return;
 
                         context.read<IssuesBloc>().add(
-                          IssueCreateRequested(
-                            projectId: p.id,
-                            title: result.title,
-                            description: result.description,
-                            type: result.type,
-                            priority: result.priority,
-                            dueDate: result.dueDate,
-                          ),
-                        );
+                              IssueCreateRequested(
+                                projectId: p.id,
+                                title: result.title,
+                                description: result.description,
+                                type: result.type,
+                                priority: result.priority,
+                                dueDate: result.dueDate,
+                              ),
+                            );
                       },
                     );
                   },
@@ -191,25 +202,27 @@ class _QuickAction extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.c;
+
     return InkWell(
       borderRadius: BorderRadius.circular(12),
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
-          color: AppColors.surface2,
+          color: c.surface2,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.border),
+          border: Border.all(color: c.border),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: AppColors.textSecondary, size: 18),
+            Icon(icon, color: c.textSecondary, size: 18),
             const SizedBox(width: 8),
             Text(
               label,
-              style: const TextStyle(
-                color: AppColors.textPrimary,
+              style: TextStyle(
+                color: c.textPrimary,
                 fontSize: 13,
               ),
             ),

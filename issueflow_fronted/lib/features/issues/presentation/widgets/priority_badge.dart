@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_palette.dart';
 
 class PriorityBadge extends StatelessWidget {
   final String priority; // low/medium/high
@@ -8,6 +8,7 @@ class PriorityBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.c;
     final p = priority.toLowerCase();
 
     Color bg;
@@ -16,18 +17,18 @@ class PriorityBadge extends StatelessWidget {
 
     switch (p) {
       case 'high':
-        bg = AppColors.warning.withOpacity(0.18);
-        border = AppColors.warning.withOpacity(0.6);
+        bg = c.warning.withOpacity(0.18);
+        border = c.warning.withOpacity(0.6);
         label = 'High';
         break;
       case 'low':
-        bg = AppColors.surface2;
-        border = AppColors.border;
+        bg = c.surface2;
+        border = c.border;
         label = 'Low';
         break;
       default:
-        bg = AppColors.info.withOpacity(0.15);
-        border = AppColors.info.withOpacity(0.5);
+        bg = c.info.withOpacity(0.15);
+        border = c.info.withOpacity(0.5);
         label = 'Medium';
     }
 

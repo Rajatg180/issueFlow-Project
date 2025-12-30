@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_palette.dart';
 
 class CreateIssueResult {
   final String title;
@@ -108,11 +108,13 @@ class _CreateIssueDialogState extends State<_CreateIssueDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.c;
+
     return Dialog(
-      backgroundColor: AppColors.surface,
+      backgroundColor: c.surface,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(14),
-        side: const BorderSide(color: AppColors.border),
+        side: BorderSide(color: c.border),
       ),
       child: ConstrainedBox(
         constraints: const BoxConstraints(
@@ -227,6 +229,7 @@ class _CreateIssueBottomSheetState extends State<_CreateIssueBottomSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.c;
     final bottomInset = MediaQuery.of(context).viewInsets.bottom;
 
     return GestureDetector(
@@ -238,9 +241,9 @@ class _CreateIssueBottomSheetState extends State<_CreateIssueBottomSheet> {
           top: false,
           child: Container(
             decoration: BoxDecoration(
-              color: AppColors.surface,
+              color: c.surface,
               borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
-              border: Border.all(color: AppColors.border),
+              border: Border.all(color: c.border),
             ),
             constraints: const BoxConstraints(maxHeight: 700),
             child: Column(
@@ -251,7 +254,7 @@ class _CreateIssueBottomSheetState extends State<_CreateIssueBottomSheet> {
                   width: 44,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: AppColors.border,
+                    color: c.border,
                     borderRadius: BorderRadius.circular(99),
                   ),
                 ),
@@ -268,7 +271,7 @@ class _CreateIssueBottomSheetState extends State<_CreateIssueBottomSheet> {
                       ),
                       IconButton(
                         onPressed: () => Navigator.pop(context, null),
-                        icon: const Icon(Icons.close, color: AppColors.textSecondary),
+                        icon: Icon(Icons.close, color: c.textSecondary),
                       ),
                     ],
                   ),
@@ -333,6 +336,8 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.c;
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(18, 14, 10, 10),
       child: Row(
@@ -343,7 +348,7 @@ class _Header extends StatelessWidget {
           IconButton(
             tooltip: 'Close',
             onPressed: onClose,
-            icon: const Icon(Icons.close, color: AppColors.textSecondary),
+            icon: Icon(Icons.close, color: c.textSecondary),
           ),
         ],
       ),
@@ -384,6 +389,8 @@ class _FormBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.c;
+
     return Form(
       key: formKey,
       child: Column(
@@ -413,8 +420,8 @@ class _FormBody extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           LayoutBuilder(
-            builder: (context, c) {
-              final isNarrow = c.maxWidth < 420;
+            builder: (context, cBox) {
+              final isNarrow = cBox.maxWidth < 420;
 
               final typeField = DropdownButtonFormField<String>(
                 value: type,
@@ -478,7 +485,7 @@ class _FormBody extends StatelessWidget {
                     child: Text(
                       dueDate == null ? '-' : fmt(dueDate!),
                       style: TextStyle(
-                        color: dueDate == null ? AppColors.textSecondary : AppColors.textPrimary,
+                        color: dueDate == null ? c.textSecondary : c.textPrimary,
                       ),
                     ),
                   ),
@@ -486,9 +493,9 @@ class _FormBody extends StatelessWidget {
                     IconButton(
                       tooltip: 'Clear',
                       onPressed: onClearDate,
-                      icon: const Icon(Icons.clear, color: AppColors.textSecondary),
+                      icon: Icon(Icons.clear, color: c.textSecondary),
                     ),
-                  const Icon(Icons.chevron_right, color: AppColors.textSecondary),
+                  Icon(Icons.chevron_right, color: c.textSecondary),
                 ],
               ),
             ),

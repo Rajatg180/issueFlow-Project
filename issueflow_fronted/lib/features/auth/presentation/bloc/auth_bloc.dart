@@ -61,6 +61,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     emit(
       Authenticated(
         email: me.email,
+        username: me.username,
         hasCompletedOnboarding: me.hasCompletedOnboarding,
       ),
     );
@@ -145,7 +146,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     } catch (e) {
       emit(
         AuthFailure(e.toString().replaceFirst("Exception: ", "")),
-      ); // ✅ keep failure
+      ); 
     }
   }
 

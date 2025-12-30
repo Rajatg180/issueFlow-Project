@@ -8,7 +8,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/errors/app_exception.dart';
 import '../../../../core/storage/token_storage.dart';
 import '../../../../core/config/app_config.dart';
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_palette.dart';
 
 import '../../domain/entities/issue_entity.dart';
 import '../../domain/entities/project_user_entity.dart';
@@ -140,6 +140,8 @@ class _IssuesTableState extends State<IssuesTable> {
   }
 
   Widget _calendarDateChip(String? dateStr) {
+    final c = context.c;
+
     if (dateStr == null || dateStr.trim().isEmpty) {
       return const Text('-');
     }
@@ -149,10 +151,10 @@ class _IssuesTableState extends State<IssuesTable> {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Icon(
+        Icon(
           Icons.calendar_month_rounded,
           size: 16,
-          color: AppColors.mutedText,
+          color: c.textSecondary,
         ),
         const SizedBox(width: 6),
         Text(d, style: const TextStyle(fontSize: 12)),
@@ -161,6 +163,8 @@ class _IssuesTableState extends State<IssuesTable> {
   }
 
   Widget _dueChip(String? dueDate) {
+    final c = context.c;
+
     if (dueDate == null || dueDate.trim().isEmpty) {
       return const Text('-');
     }
@@ -172,17 +176,17 @@ class _IssuesTableState extends State<IssuesTable> {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
-          color: AppColors.surface2,
+          color: c.surface2,
           borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: AppColors.border),
+          border: Border.all(color: c.border),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
+            Icon(
               Icons.calendar_month_rounded,
               size: 16,
-              color: AppColors.mutedText,
+              color: c.textSecondary,
             ),
             const SizedBox(width: 6),
             Text(dateOnly, style: const TextStyle(fontSize: 12)),
@@ -191,6 +195,7 @@ class _IssuesTableState extends State<IssuesTable> {
       );
     }
 
+    // keep your same overdue styling (works in both themes)
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
@@ -204,7 +209,7 @@ class _IssuesTableState extends State<IssuesTable> {
           const Icon(
             Icons.calendar_month_rounded,
             size: 16,
-            color: Color(0xFFFCA5A5),
+            color: Colors.red,
           ),
           const SizedBox(width: 6),
           Text(
@@ -212,7 +217,7 @@ class _IssuesTableState extends State<IssuesTable> {
             style: const TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w700,
-              color: Color(0xFFFCA5A5),
+              color: Colors.red,
             ),
           ),
         ],
@@ -227,6 +232,8 @@ class _IssuesTableState extends State<IssuesTable> {
   }
 
   Widget _avatar(String name, {double size = 22}) {
+    final c = context.c;
+
     final letter = _initial(name);
 
     final h = name.hashCode.abs();
@@ -245,10 +252,10 @@ class _IssuesTableState extends State<IssuesTable> {
       ),
       child: Text(
         letter,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.w800,
-          color: AppColors.textPrimary,
+          color: c.textPrimary,
         ),
       ),
     );
@@ -327,6 +334,7 @@ class _IssuesTableState extends State<IssuesTable> {
     required bool allowUnassigned,
     required void Function(ProjectUserEntity? user) onSelected,
   }) {
+    final c = context.c;
     final display = text.trim().isEmpty ? '-' : text;
 
     return PopupMenuButton<ProjectUserEntity?>(
@@ -357,14 +365,14 @@ class _IssuesTableState extends State<IssuesTable> {
             PopupMenuItem<ProjectUserEntity?>(
               value: sentinel,
               child: Row(
-                children: const [
+                children: [
                   Icon(
                     Icons.person_off_outlined,
                     size: 18,
-                    color: AppColors.mutedText,
+                    color: c.textSecondary,
                   ),
-                  SizedBox(width: 10),
-                  Text('Unassigned'),
+                  const SizedBox(width: 10),
+                  const Text('Unassigned'),
                 ],
               ),
             ),
@@ -397,9 +405,9 @@ class _IssuesTableState extends State<IssuesTable> {
           duration: const Duration(milliseconds: 120),
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
           decoration: BoxDecoration(
-            color: AppColors.surface2,
+            color: c.surface2,
             borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: AppColors.border),
+            border: Border.all(color: c.border),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -414,10 +422,10 @@ class _IssuesTableState extends State<IssuesTable> {
                 ),
               ),
               const SizedBox(width: 6),
-              const Icon(
+              Icon(
                 Icons.keyboard_arrow_down_rounded,
                 size: 18,
-                color: AppColors.mutedText,
+                color: c.textSecondary,
               ),
             ],
           ),
@@ -430,6 +438,7 @@ class _IssuesTableState extends State<IssuesTable> {
     required String text,
     bool showUnassignedIcon = false,
   }) {
+    final c = context.c;
     final display = text.trim().isEmpty ? '-' : text;
 
     return Container(
@@ -438,10 +447,10 @@ class _IssuesTableState extends State<IssuesTable> {
         mainAxisSize: MainAxisSize.min,
         children: [
           if (showUnassignedIcon && display.toLowerCase() == 'unassigned') ...[
-            const Icon(
+            Icon(
               Icons.person_off_outlined,
               size: 16,
-              color: AppColors.mutedText,
+              color: c.textSecondary,
             ),
             const SizedBox(width: 8),
           ] else ...[
@@ -555,6 +564,8 @@ class _IssuesTableState extends State<IssuesTable> {
     required List<PopupMenuEntry<String>> items,
     required void Function(String v) onSelected,
   }) {
+    final c = context.c;
+
     return PopupMenuButton<String>(
       tooltip: '',
       position: PopupMenuPosition.under,
@@ -563,19 +574,19 @@ class _IssuesTableState extends State<IssuesTable> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
         decoration: BoxDecoration(
-          color: AppColors.surface2,
+          color: c.surface2,
           borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: AppColors.border),
+          border: Border.all(color: c.border),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(label, style: const TextStyle(fontSize: 12)),
             const SizedBox(width: 6),
-            const Icon(
+            Icon(
               Icons.keyboard_arrow_down_rounded,
               size: 18,
-              color: AppColors.mutedText,
+              color: c.textSecondary,
             ),
           ],
         ),
@@ -618,6 +629,7 @@ class _IssuesTableState extends State<IssuesTable> {
 
   // ---------- ASSIGNEE STRIP ----------
   Widget _assigneeStrip() {
+    final c = context.c;
     final users = widget.projectUsers;
 
     const double size = 28;
@@ -660,10 +672,10 @@ class _IssuesTableState extends State<IssuesTable> {
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           border: Border.all(
-            color: selected ? AppColors.border : AppColors.border.withOpacity(0.6),
+            color: selected ? c.border : c.border.withOpacity(0.6),
             width: selected ? 2 : 1,
           ),
-          color: AppColors.surface2,
+          color: c.surface2,
         ),
         child: ClipOval(child: child),
       );
@@ -699,10 +711,10 @@ class _IssuesTableState extends State<IssuesTable> {
                   child: Center(
                     child: Text(
                       '+$remaining',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w800,
-                        color: AppColors.textPrimary,
+                        color: c.textPrimary,
                       ),
                     ),
                   ),
@@ -719,14 +731,14 @@ class _IssuesTableState extends State<IssuesTable> {
       height: 32,
       padding: const EdgeInsets.symmetric(horizontal: 10),
       decoration: BoxDecoration(
-        color: AppColors.surface2,
+        color: c.surface2,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: c.border),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.filter_list, size: 16, color: AppColors.mutedText),
+          Icon(Icons.filter_list, size: 16, color: c.textSecondary),
           const SizedBox(width: 8),
           const Text('Filter', style: TextStyle(fontSize: 12)),
           if (count > 0) ...[
@@ -734,9 +746,9 @@ class _IssuesTableState extends State<IssuesTable> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: AppColors.surface,
+                color: c.surface,
                 borderRadius: BorderRadius.circular(999),
-                border: Border.all(color: AppColors.border),
+                border: Border.all(color: c.border),
               ),
               child: Text(
                 '$count',
@@ -777,6 +789,7 @@ class _IssuesTableState extends State<IssuesTable> {
 
   // ✅ Always show the backend count on the table (no state-dependent "only after click" issue).
   Widget _commentsCell(IssueEntity issue) {
+    final c = context.c;
     final count = issue.commentsCount;
 
     return InkWell(
@@ -785,21 +798,21 @@ class _IssuesTableState extends State<IssuesTable> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(
-          color: AppColors.surface2,
+          color: c.surface2,
           borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: AppColors.border),
+          border: Border.all(color: c.border),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.chat_bubble_outline, size: 16, color: AppColors.mutedText),
+            Icon(Icons.chat_bubble_outline, size: 16, color: c.textSecondary),
             const SizedBox(width: 8),
             Text(
               count == 0 ? 'Add comment' : '$count comments',
               style: const TextStyle(fontSize: 12),
             ),
             const SizedBox(width: 6),
-            const Icon(Icons.chevron_right_rounded, size: 18, color: AppColors.mutedText),
+            Icon(Icons.chevron_right_rounded, size: 18, color: c.textSecondary),
           ],
         ),
       ),
@@ -930,6 +943,8 @@ class _IssuesTableState extends State<IssuesTable> {
   // ---------- BUILD ----------
   @override
   Widget build(BuildContext context) {
+    final c = context.c;
+
     if (widget.issues.isEmpty) {
       return const Padding(
         padding: EdgeInsets.all(12),
@@ -943,8 +958,8 @@ class _IssuesTableState extends State<IssuesTable> {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12),
       decoration: BoxDecoration(
-        color: AppColors.surface,
-        border: Border.all(color: AppColors.border),
+        color: c.surface,
+        border: Border.all(color: c.border),
         borderRadius: BorderRadius.circular(12),
       ),
       child: ClipRRect(
@@ -1034,13 +1049,13 @@ class _IssuesTableState extends State<IssuesTable> {
                                 ),
                                 Text(
                                   'Showing ${filteredIssues.length}/${widget.issues.length}',
-                                  style: const TextStyle(fontSize: 12, color: AppColors.mutedText),
+                                  style: TextStyle(fontSize: 12, color: c.textSecondary),
                                 ),
                               ],
                             ),
                           ),
                           DataTable(
-                            headingRowColor: const MaterialStatePropertyAll(AppColors.surface2),
+                            headingRowColor: MaterialStatePropertyAll(c.surface2),
                             columns: const [
                               DataColumn(label: Text('Key')),
                               DataColumn(label: Text('Title')),
@@ -1230,15 +1245,15 @@ class _IssuesTableState extends State<IssuesTable> {
                                                 child: Container(
                                                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                                                   decoration: BoxDecoration(
-                                                    color: AppColors.surface2,
+                                                    color: c.surface2,
                                                     borderRadius: BorderRadius.circular(999),
-                                                    border: Border.all(color: AppColors.border),
+                                                    border: Border.all(color: c.border),
                                                   ),
                                                   child: Row(
                                                     mainAxisSize: MainAxisSize.min,
                                                     children: [
-                                                      const Icon(Icons.calendar_month_rounded,
-                                                          size: 16, color: AppColors.mutedText),
+                                                      Icon(Icons.calendar_month_rounded,
+                                                          size: 16, color: c.textSecondary),
                                                       const SizedBox(width: 6),
                                                       Text(
                                                         _due == null
@@ -1255,7 +1270,7 @@ class _IssuesTableState extends State<IssuesTable> {
                                                 IconButton(
                                                   tooltip: 'Clear',
                                                   onPressed: () => setState(() => _due = null),
-                                                  icon: const Icon(Icons.clear, size: 18, color: AppColors.mutedText),
+                                                  icon: Icon(Icons.clear, size: 18, color: c.textSecondary),
                                                 ),
                                               ],
                                             ],
@@ -1316,7 +1331,6 @@ class _IssuesTableState extends State<IssuesTable> {
     );
   }
 }
-
 
 class IssueCommentsSheet extends StatefulWidget {
   final String headerTitle;
@@ -1451,6 +1465,8 @@ class _IssueCommentsSheetState extends State<IssueCommentsSheet> {
   }
 
   Widget _avatar(String name, {double size = 28}) {
+    final c = context.c;
+
     final letter = _initial(name);
     final h = name.hashCode.abs();
     final base = 0xFF000000 | (h & 0x00FFFFFF);
@@ -1468,10 +1484,10 @@ class _IssueCommentsSheetState extends State<IssueCommentsSheet> {
       ),
       child: Text(
         letter,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.w800,
-          color: AppColors.textPrimary,
+          color: c.textPrimary,
         ),
       ),
     );
@@ -1481,6 +1497,8 @@ class _IssueCommentsSheetState extends State<IssueCommentsSheet> {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.c;
+
     final w = MediaQuery.of(context).size.width;
     final h = MediaQuery.of(context).size.height;
 
@@ -1493,9 +1511,9 @@ class _IssueCommentsSheetState extends State<IssueCommentsSheet> {
         width: panelWidth,
         height: panelHeight,
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: c.surface,
           borderRadius: BorderRadius.circular(widget.isMobile ? 18 : 14),
-          border: Border.all(color: AppColors.border),
+          border: Border.all(color: c.border),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.25),
@@ -1509,9 +1527,9 @@ class _IssueCommentsSheetState extends State<IssueCommentsSheet> {
             // Header
             Container(
               padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
-              decoration: const BoxDecoration(
-                color: AppColors.surface2,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(14)),
+              decoration: BoxDecoration(
+                color: c.surface2,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
               ),
               child: Row(
                 children: [
@@ -1526,7 +1544,7 @@ class _IssueCommentsSheetState extends State<IssueCommentsSheet> {
                   IconButton(
                     tooltip: 'Close',
                     onPressed: widget.onClose,
-                    icon: const Icon(Icons.close_rounded, color: AppColors.mutedText),
+                    icon: Icon(Icons.close_rounded, color: c.textSecondary),
                   ),
                 ],
               ),
@@ -1540,7 +1558,7 @@ class _IssueCommentsSheetState extends State<IssueCommentsSheet> {
                   scrollDirection: Axis.horizontal,
                   child: Row(
                     children: [
-                      const Icon(Icons.group_outlined, size: 18, color: AppColors.mutedText),
+                      Icon(Icons.group_outlined, size: 18, color: c.textSecondary),
                       const SizedBox(width: 10),
                       for (final u in widget.projectUsers) ...[
                         Tooltip(
@@ -1556,18 +1574,18 @@ class _IssueCommentsSheetState extends State<IssueCommentsSheet> {
                 ),
               ),
 
-            const Divider(height: 1, color: AppColors.border),
+            Divider(height: 1, color: c.border),
 
             // Messages
             Expanded(
               child: widget.loading
                   ? const Center(child: CircularProgressIndicator())
                   : widget.comments.isEmpty
-                      ? const Center(
+                      ? Center(
                           child: Text(
                             'No comments yet.\nBe the first to add one.',
                             textAlign: TextAlign.center,
-                            style: TextStyle(color: AppColors.mutedText),
+                            style: TextStyle(color: c.textSecondary),
                           ),
                         )
                       : BlocBuilder<CommentsBloc, CommentsState>(
@@ -1579,15 +1597,14 @@ class _IssueCommentsSheetState extends State<IssueCommentsSheet> {
                               padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
                               itemCount: widget.comments.length,
                               itemBuilder: (ctx, index) {
-                                final c = widget.comments[index];
-                                final mine = _isMine(c);
+                                final cm = widget.comments[index];
+                                final mine = _isMine(cm);
 
                                 final align = mine ? Alignment.centerRight : Alignment.centerLeft;
-                                final bubbleColor = mine
-                                    ? AppColors.surface2.withOpacity(0.95)
-                                    : AppColors.surface2.withOpacity(0.7);
+                                final bubbleColor =
+                                    mine ? c.surface2.withOpacity(0.95) : c.surface2.withOpacity(0.7);
 
-                                final isEditingThis = _editingId == c.id;
+                                final isEditingThis = _editingId == cm.id;
 
                                 return Align(
                                   alignment: align,
@@ -1598,30 +1615,30 @@ class _IssueCommentsSheetState extends State<IssueCommentsSheet> {
                                     decoration: BoxDecoration(
                                       color: bubbleColor,
                                       borderRadius: BorderRadius.circular(14),
-                                      border: Border.all(color: AppColors.border),
+                                      border: Border.all(color: c.border),
                                     ),
                                     child: Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
                                         Row(
                                           children: [
-                                            _avatar(c.authorUsername, size: 22),
+                                            _avatar(cm.authorUsername, size: 22),
                                             const SizedBox(width: 8),
                                             Expanded(
                                               child: Text(
-                                                c.authorUsername,
+                                                cm.authorUsername,
                                                 style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
                                                 overflow: TextOverflow.ellipsis,
                                               ),
                                             ),
                                             Text(
-                                              _hhmm(c.createdAt.toLocal()),
-                                              style: const TextStyle(fontSize: 11, color: AppColors.mutedText),
+                                              _hhmm(cm.createdAt.toLocal()),
+                                              style: TextStyle(fontSize: 11, color: c.textSecondary),
                                             ),
-                                            if (c.edited) ...[
+                                            if (cm.edited) ...[
                                               const SizedBox(width: 6),
-                                              const Text('(edited)',
-                                                  style: TextStyle(fontSize: 11, color: AppColors.mutedText)),
+                                              Text('(edited)',
+                                                  style: TextStyle(fontSize: 11, color: c.textSecondary)),
                                             ],
 
                                             // ✅ Edit/Delete actions only for my comment
@@ -1631,18 +1648,18 @@ class _IssueCommentsSheetState extends State<IssueCommentsSheet> {
                                                 tooltip: '',
                                                 onSelected: (v) {
                                                   if (v == 'edit') {
-                                                    _startEdit(c);
+                                                    _startEdit(cm);
                                                   } else if (v == 'delete') {
-                                                    _confirmDelete(context, c);
+                                                    _confirmDelete(context, cm);
                                                   }
                                                 },
-                                                itemBuilder: (_) => [
-                                                  const PopupMenuItem(value: 'edit', child: Text('Edit')),
-                                                  const PopupMenuItem(value: 'delete', child: Text('Delete')),
+                                                itemBuilder: (_) => const [
+                                                  PopupMenuItem(value: 'edit', child: Text('Edit')),
+                                                  PopupMenuItem(value: 'delete', child: Text('Delete')),
                                                 ],
-                                                child: const Padding(
-                                                  padding: EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                                                  child: Icon(Icons.more_vert, size: 18, color: AppColors.mutedText),
+                                                child: Padding(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                                                  child: Icon(Icons.more_vert, size: 18, color: c.textSecondary),
                                                 ),
                                               ),
                                             ],
@@ -1651,7 +1668,8 @@ class _IssueCommentsSheetState extends State<IssueCommentsSheet> {
                                         const SizedBox(height: 8),
 
                                         if (!isEditingThis) ...[
-                                          Text(c.body, style: const TextStyle(fontSize: 13, height: 1.25)),
+                                          const Text('', style: TextStyle(fontSize: 0)), // keeps structure unchanged
+                                          Text(cm.body, style: const TextStyle(fontSize: 13, height: 1.25)),
                                         ] else ...[
                                           TextField(
                                             controller: _editCtrl,
@@ -1678,9 +1696,9 @@ class _IssueCommentsSheetState extends State<IssueCommentsSheet> {
                                                         if (t.isEmpty) return;
                                                         context.read<CommentsBloc>().add(
                                                               CommentEditRequested(
-                                                                projectId: c.projectId,
-                                                                issueId: c.issueId,
-                                                                commentId: c.id,
+                                                                projectId: cm.projectId,
+                                                                issueId: cm.issueId,
+                                                                commentId: cm.id,
                                                                 body: t,
                                                               ),
                                                             );
@@ -1707,7 +1725,7 @@ class _IssueCommentsSheetState extends State<IssueCommentsSheet> {
                         ),
             ),
 
-            const Divider(height: 1, color: AppColors.border),
+            Divider(height: 1, color: c.border),
 
             // Composer
             Padding(
@@ -1729,14 +1747,14 @@ class _IssueCommentsSheetState extends State<IssueCommentsSheet> {
                         hintText: 'Write a comment…',
                         isDense: true,
                         filled: true,
-                        fillColor: AppColors.surface2,
+                        fillColor: c.surface2,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: AppColors.border),
+                          borderSide: BorderSide(color: c.border),
                         ),
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: AppColors.border),
+                          borderSide: BorderSide(color: c.border),
                         ),
                         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                       ),

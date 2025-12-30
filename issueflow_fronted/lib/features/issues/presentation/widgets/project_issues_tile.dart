@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_palette.dart';
 import '../../domain/entities/project_user_entity.dart';
 import '../../domain/entities/project_with_issues_entity.dart';
 import 'issues_table.dart';
@@ -98,13 +98,11 @@ class _ProjectIssuesTileState extends State<ProjectIssuesTile>
           ),
         ),
         const SizedBox(height: 8),
-
         IssuesTable(
           projectId: widget.project.id, // ✅ NEW
           issues: widget.project.issues,
           projectUsers: widget.projectUsers,
         ),
-
         const SizedBox(height: 14),
       ],
     );
@@ -112,12 +110,14 @@ class _ProjectIssuesTileState extends State<ProjectIssuesTile>
 
   @override
   Widget build(BuildContext context) {
+    final c = context.c;
+
     return Card(
-      color: AppColors.surface,
+      color: c.surface,
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(14),
-        side: const BorderSide(color: AppColors.border),
+        side: BorderSide(color: c.border),
       ),
       child: Column(
         children: [
@@ -131,9 +131,9 @@ class _ProjectIssuesTileState extends State<ProjectIssuesTile>
                     padding:
                         const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                     decoration: BoxDecoration(
-                      color: AppColors.surface2,
+                      color: c.surface2,
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: AppColors.border),
+                      border: Border.all(color: c.border),
                     ),
                     child: Text(
                       widget.project.key,
@@ -161,9 +161,9 @@ class _ProjectIssuesTileState extends State<ProjectIssuesTile>
                     turns: widget.expanded ? 0.5 : 0.0,
                     duration: const Duration(milliseconds: 220),
                     curve: Curves.easeOutCubic,
-                    child: const Icon(
+                    child: Icon(
                       Icons.expand_more,
-                      color: AppColors.textSecondary,
+                      color: c.textSecondary,
                     ),
                   ),
                 ],

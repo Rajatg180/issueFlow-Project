@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:issueflow_fronted/core/theme/app_colors.dart';
+import 'package:issueflow_fronted/core/theme/app_palette.dart';
 import 'package:issueflow_fronted/core/widgets/app_toast.dart';
 import 'package:issueflow_fronted/core/widgets/responsive/responsive.dart';
 
@@ -49,12 +49,13 @@ class _ProjectsPageState extends State<ProjectsPage> {
 
   Future<void> _openCreate(BuildContext context) async {
     final isMobile = Responsive.isMobile(context);
+    final c = context.c;
 
     if (isMobile) {
       await showModalBottomSheet<bool>(
         context: context,
         isScrollControlled: true,
-        backgroundColor: AppColors.surface,
+        backgroundColor: c.surface,
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
         ),
@@ -69,12 +70,11 @@ class _ProjectsPageState extends State<ProjectsPage> {
     );
   }
 
-
   Future<void> _openInvites(BuildContext context) async {
     final isMobile = Responsive.isMobile(context);
+    final c = context.c;
 
     final invitesBloc = context.read<InvitesBloc>();
-
 
     invitesBloc.add(const InvitesFetchRequested());
 
@@ -82,7 +82,7 @@ class _ProjectsPageState extends State<ProjectsPage> {
       await showModalBottomSheet(
         context: context,
         isScrollControlled: true,
-        backgroundColor: AppColors.surface,
+        backgroundColor: c.surface,
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
         ),
@@ -104,18 +104,16 @@ class _ProjectsPageState extends State<ProjectsPage> {
   @override
   Widget build(BuildContext context) {
     final isMobile = Responsive.isMobile(context);
-
+    final c = context.c;
 
     final invitesCount = context.select(
       (InvitesBloc b) => b.state.invites.length,
     );
 
     return BlocConsumer<ProjectsBloc, ProjectsState>(
-
       listenWhen: (prev, curr) => true,
       listener: (context, state) {
         final prev = _lastProjectsState;
-
 
         if (state.error != null && (prev == null || prev.error != state.error)) {
           AppToast.show(
@@ -124,22 +122,18 @@ class _ProjectsPageState extends State<ProjectsPage> {
             isError: true,
           );
         } else if (prev != null) {
-
           if (prev.creating && !state.creating && state.error == null) {
             AppToast.show(context, message: "Project created");
           }
-
 
           if (prev.deletingId != null && state.deletingId == null && state.error == null) {
             AppToast.show(context, message: "Project deleted");
           }
 
-
           if (prev.editingId != null && state.editingId == null && state.error == null) {
             AppToast.show(context, message: "Project updated");
           }
         }
-
 
         _lastProjectsState = state;
       },
@@ -149,9 +143,7 @@ class _ProjectsPageState extends State<ProjectsPage> {
           final name = p.name.toLowerCase();
           final key = p.key.toLowerCase();
           final desc = (p.description ?? "").toLowerCase();
-          return name.contains(_query) ||
-              key.contains(_query) ||
-              desc.contains(_query);
+          return name.contains(_query) || key.contains(_query) || desc.contains(_query);
         }).toList();
 
         items.sort((a, b) {
@@ -163,7 +155,7 @@ class _ProjectsPageState extends State<ProjectsPage> {
         });
 
         return Container(
-          color: AppColors.bg,
+          color: c.bg,
           child: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 1100),
@@ -180,8 +172,6 @@ class _ProjectsPageState extends State<ProjectsPage> {
                       creating: state.creating,
                       onCreate: () => _openCreate(context),
                       onInvites: () => _openInvites(context),
-
-                      // ✅ NEW
                       invitesCount: invitesCount,
                     ),
                     const SizedBox(height: 12),
@@ -191,10 +181,7 @@ class _ProjectsPageState extends State<ProjectsPage> {
                         creating: state.creating,
                         deletingId: state.deletingId,
                         updatingPrefId: state.updatingPrefId,
-
-                        // ✅ NEW (for edit loading state)
                         editingId: state.editingId,
-
                         hasSearch: _query.isNotEmpty,
                         filteredCount: items.length,
                         allCount: state.items.length,
@@ -258,6 +245,8 @@ class _HeaderState extends State<_Header> {
   }
 
   Widget _bellWithBadge({required bool hasInvites, required int count}) {
+    final c = context.c;
+
     return Stack(
       clipBehavior: Clip.none,
       children: [
@@ -271,7 +260,7 @@ class _HeaderState extends State<_Header> {
               decoration: BoxDecoration(
                 color: const Color(0xFFEF4444),
                 borderRadius: BorderRadius.circular(999),
-                border: Border.all(color: AppColors.surface, width: 2),
+                border: Border.all(color: c.surface, width: 2),
               ),
               constraints: const BoxConstraints(minWidth: 18, minHeight: 18),
               child: Text(
@@ -295,6 +284,8 @@ class _HeaderState extends State<_Header> {
     required Widget child,
     String? tooltip,
   }) {
+    final c = context.c;
+
     return SizedBox(
       height: 44,
       width: 44,
@@ -302,9 +293,9 @@ class _HeaderState extends State<_Header> {
         color: Colors.transparent,
         child: Ink(
           decoration: BoxDecoration(
-            color: AppColors.surface,
+            color: c.surface,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.border),
+            border: Border.all(color: c.border),
           ),
           child: InkWell(
             borderRadius: BorderRadius.circular(12),
@@ -320,24 +311,26 @@ class _HeaderState extends State<_Header> {
   }
 
   Widget _mobileSearchField() {
+    final c = context.c;
+
     return SizedBox(
       height: 44,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
         curve: Curves.easeOut,
         decoration: BoxDecoration(
-          color: AppColors.surface2,
+          color: c.surface2,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.border),
+          border: Border.all(color: c.border),
         ),
         child: Row(
           children: [
             IconButton(
               tooltip: "Close search",
               onPressed: _closeSearch,
-              icon: const Icon(
+              icon: Icon(
                 Icons.close,
-                color: AppColors.textSecondary,
+                color: c.textSecondary,
                 size: 18,
               ),
             ),
@@ -357,9 +350,9 @@ class _HeaderState extends State<_Header> {
               IconButton(
                 tooltip: "Clear",
                 onPressed: () => widget.searchCtrl.clear(),
-                icon: const Icon(
+                icon: Icon(
                   Icons.backspace_outlined,
-                  color: AppColors.textSecondary,
+                  color: c.textSecondary,
                   size: 18,
                 ),
               ),
@@ -373,13 +366,14 @@ class _HeaderState extends State<_Header> {
   Widget build(BuildContext context) {
     final isMobile = Responsive.isMobile(context);
     final hasInvites = widget.invitesCount > 0;
+    final c = context.c;
 
     return Container(
       padding: EdgeInsets.all(isMobile ? 12 : 14),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: c.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: c.border),
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
@@ -387,17 +381,16 @@ class _HeaderState extends State<_Header> {
 
           final title = Row(
             mainAxisSize: MainAxisSize.min,
-            children: const [
+            children: [
               Icon(
                 Icons.dashboard_customize_outlined,
-                color: AppColors.textSecondary,
+                color: c.textSecondary,
               ),
-              SizedBox(width: 10),
-              _HeaderTitle(),
+              const SizedBox(width: 10),
+              const _HeaderTitle(),
             ],
           );
 
-          // ✅ MOBILE: clean header row + optional search row
           if (isMobile) {
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -413,7 +406,7 @@ class _HeaderState extends State<_Header> {
                           onTap: _searchOpen ? _closeSearch : _openSearch,
                           child: Icon(
                             _searchOpen ? Icons.close : Icons.search,
-                            color: AppColors.textSecondary,
+                            color: c.textSecondary,
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -431,9 +424,7 @@ class _HeaderState extends State<_Header> {
                           onTap: widget.creating ? null : widget.onCreate,
                           child: Icon(
                             Icons.add,
-                            color: widget.creating
-                                ? AppColors.textSecondary
-                                : AppColors.textPrimary,
+                            color: widget.creating ? c.textSecondary : c.textPrimary,
                           ),
                         ),
                       ],
@@ -448,7 +439,6 @@ class _HeaderState extends State<_Header> {
             );
           }
 
-          // ✅ TABLET/DESKTOP: keep your current behavior
           final actions = SizedBox(
             width: isNarrow ? double.infinity : null,
             child: Row(
@@ -459,27 +449,24 @@ class _HeaderState extends State<_Header> {
                   child: Align(
                     alignment: Alignment.centerRight,
                     child: SizedBox(
-                      width: isNarrow
-                          ? double.infinity
-                          : (_searchOpen ? 340 : 44),
+                      width: isNarrow ? double.infinity : (_searchOpen ? 340 : 44),
                       height: 44,
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 180),
                         curve: Curves.easeOut,
                         decoration: BoxDecoration(
-                          color: AppColors.surface2,
+                          color: c.surface2,
                           borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: AppColors.border),
+                          border: Border.all(color: c.border),
                         ),
                         child: Row(
                           children: [
                             IconButton(
                               tooltip: _searchOpen ? "Close search" : "Search",
-                              onPressed:
-                                  _searchOpen ? _closeSearch : _openSearch,
+                              onPressed: _searchOpen ? _closeSearch : _openSearch,
                               icon: Icon(
                                 _searchOpen ? Icons.close : Icons.search,
-                                color: AppColors.textSecondary,
+                                color: c.textSecondary,
                                 size: 18,
                               ),
                             ),
@@ -500,9 +487,9 @@ class _HeaderState extends State<_Header> {
                                 IconButton(
                                   tooltip: "Clear",
                                   onPressed: () => widget.searchCtrl.clear(),
-                                  icon: const Icon(
+                                  icon: Icon(
                                     Icons.backspace_outlined,
-                                    color: AppColors.textSecondary,
+                                    color: c.textSecondary,
                                     size: 18,
                                   ),
                                 ),
@@ -577,25 +564,26 @@ class _HeaderTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isMobile = Responsive.isMobile(context);
+    final c = context.c;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Text(
+        Text(
           "Projects",
           style: TextStyle(
-            color: AppColors.textPrimary,
+            color: c.textPrimary,
             fontSize: 18,
             fontWeight: FontWeight.w800,
           ),
         ),
         if (!isMobile)
-          const Padding(
-            padding: EdgeInsets.only(top: 2),
+          Padding(
+            padding: const EdgeInsets.only(top: 2),
             child: Text(
               "Manage projects and jump into issues.",
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+              style: TextStyle(color: c.textSecondary, fontSize: 12),
             ),
           ),
       ],
@@ -609,7 +597,7 @@ class _Body extends StatelessWidget {
     required this.creating,
     required this.deletingId,
     required this.updatingPrefId,
-    required this.editingId, // ✅ NEW
+    required this.editingId,
     required this.hasSearch,
     required this.filteredCount,
     required this.allCount,
@@ -621,7 +609,7 @@ class _Body extends StatelessWidget {
   final bool creating;
   final String? deletingId;
   final String? updatingPrefId;
-  final String? editingId; // ✅ NEW
+  final String? editingId;
 
   final bool hasSearch;
   final int filteredCount;
@@ -631,6 +619,8 @@ class _Body extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.c;
+
     if (loading) return const Center(child: CircularProgressIndicator());
 
     if (items.isEmpty) {
@@ -647,11 +637,9 @@ class _Body extends StatelessWidget {
         Padding(
           padding: const EdgeInsets.only(left: 2, bottom: 10),
           child: Text(
-            hasSearch
-                ? "Showing $filteredCount of $allCount projects"
-                : "$allCount projects",
-            style: const TextStyle(
-              color: AppColors.textSecondary,
+            hasSearch ? "Showing $filteredCount of $allCount projects" : "$allCount projects",
+            style: TextStyle(
+              color: c.textSecondary,
               fontSize: 12,
             ),
           ),
@@ -673,7 +661,7 @@ class _Body extends StatelessWidget {
                 isPinned: p.isPinned,
                 isDeleting: deletingId == p.id,
                 isUpdatingPref: updatingPrefId == p.id,
-                isEditing: editingId == p.id, 
+                isEditing: editingId == p.id,
                 role: p.role,
                 onTap: () {},
               );
@@ -696,7 +684,7 @@ class _ProjectTile extends StatelessWidget {
     required this.isPinned,
     required this.isDeleting,
     required this.isUpdatingPref,
-    required this.isEditing, // ✅ NEW
+    required this.isEditing,
     required this.onTap,
     required this.role,
   });
@@ -711,7 +699,7 @@ class _ProjectTile extends StatelessWidget {
   final String role;
   final bool isDeleting;
   final bool isUpdatingPref;
-  final bool isEditing; // ✅ NEW
+  final bool isEditing;
   final VoidCallback onTap;
 
   String _createdLabel(DateTime d) {
@@ -720,21 +708,23 @@ class _ProjectTile extends StatelessWidget {
   }
 
   Future<void> _confirmDelete(BuildContext context) async {
+    final c = context.c;
+
     final ok = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
-        backgroundColor: AppColors.surface,
+        backgroundColor: c.surface,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        title: const Text(
+        title: Text(
           "Delete project?",
           style: TextStyle(
-            color: AppColors.textPrimary,
+            color: c.textPrimary,
             fontWeight: FontWeight.w800,
           ),
         ),
         content: Text(
           "Project $keyText will be removed.\nAll issues in this project will also be deleted.",
-          style: const TextStyle(color: AppColors.textSecondary),
+          style: TextStyle(color: c.textSecondary),
         ),
         actions: [
           TextButton(
@@ -744,7 +734,7 @@ class _ProjectTile extends StatelessWidget {
           ElevatedButton(
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF7F1D1D),
-              foregroundColor: AppColors.textPrimary,
+              foregroundColor: Colors.white,
             ),
             onPressed: () => Navigator.pop(context, true),
             child: const Text("Delete"),
@@ -800,12 +790,13 @@ class _ProjectTile extends StatelessWidget {
     }
 
     final isMobile = Responsive.isMobile(context);
+    final c = context.c;
 
     if (isMobile) {
       await showModalBottomSheet(
         context: context,
         isScrollControlled: true,
-        backgroundColor: AppColors.surface,
+        backgroundColor: c.surface,
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
         ),
@@ -834,17 +825,17 @@ class _ProjectTile extends StatelessWidget {
     );
   }
 
-  // ✅ NEW: EDIT PROJECT OPEN (DIALOG/SHEET)
   Future<void> _openEditProject(BuildContext context) async {
     if (isUpdatingPref || isDeleting || isEditing) return;
 
     final isMobile = Responsive.isMobile(context);
+    final c = context.c;
 
     if (isMobile) {
       await showModalBottomSheet(
         context: context,
         isScrollControlled: true,
-        backgroundColor: AppColors.surface,
+        backgroundColor: c.surface,
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
         ),
@@ -871,8 +862,10 @@ class _ProjectTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final cPal = context.c;
+
     final disabled = isDeleting || isUpdatingPref || isEditing;
-    final canManage = role == "owner"; // ✅ ONLY OWNER CAN INVITE/DELETE/EDIT
+    final canManage = role == "owner";
 
     return LayoutBuilder(
       builder: (context, c) {
@@ -881,14 +874,13 @@ class _ProjectTile extends StatelessWidget {
 
         final createdPill = Text(
           "Created ${_createdLabel(createdAt)}",
-          style: const TextStyle(
-            color: AppColors.textSecondary,
+          style: TextStyle(
+            color: cPal.textSecondary,
             fontSize: 8,
             fontWeight: FontWeight.w600,
           ),
         );
 
-        // ✅ INLINE ACTIONS
         Widget rightActionsInline() {
           return Row(
             mainAxisSize: MainAxisSize.min,
@@ -897,29 +889,26 @@ class _ProjectTile extends StatelessWidget {
                 IconButton(
                   tooltip: "Invite members",
                   onPressed: disabled ? null : () => _openInviteMembers(context),
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.person_add_alt_1,
-                    color: AppColors.textSecondary,
+                    color: cPal.textSecondary,
                   ),
                 ),
-
-              // ✅ NEW: edit icon (owner only)
               if (canManage)
                 IconButton(
                   tooltip: "Edit project",
                   onPressed: disabled ? null : () => _openEditProject(context),
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.edit_outlined,
-                    color: AppColors.textSecondary,
+                    color: cPal.textSecondary,
                   ),
                 ),
-
               IconButton(
                 tooltip: isPinned ? "Unpin" : "Pin",
                 onPressed: disabled ? null : () => _togglePin(context),
                 icon: Icon(
                   isPinned ? Icons.push_pin : Icons.push_pin_outlined,
-                  color: isPinned ? Colors.red : AppColors.textSecondary,
+                  color: isPinned ? Colors.red : cPal.textSecondary,
                 ),
               ),
               IconButton(
@@ -927,12 +916,12 @@ class _ProjectTile extends StatelessWidget {
                 onPressed: disabled ? null : () => _toggleFavorite(context),
                 icon: Icon(
                   isFavorite ? Icons.star : Icons.star_border,
-                  color: isFavorite ? Colors.amber : AppColors.textSecondary,
+                  color: isFavorite ? Colors.amber : cPal.textSecondary,
                 ),
               ),
               PopupMenuButton<String>(
                 tooltip: "Actions",
-                color: AppColors.surface,
+                color: cPal.surface,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -945,59 +934,58 @@ class _ProjectTile extends StatelessWidget {
                 },
                 itemBuilder: (_) => [
                   if (canManage)
-                    const PopupMenuItem(
+                    PopupMenuItem(
                       value: "invite",
                       child: Text(
                         "Invite members",
-                        style: TextStyle(color: AppColors.textPrimary),
+                        style: TextStyle(color: cPal.textPrimary),
                       ),
                     ),
                   if (canManage)
-                    const PopupMenuItem(
+                    PopupMenuItem(
                       value: "edit",
                       child: Text(
                         "Edit project",
-                        style: TextStyle(color: AppColors.textPrimary),
+                        style: TextStyle(color: cPal.textPrimary),
                       ),
                     ),
-                  const PopupMenuItem(
+                  PopupMenuItem(
                     value: "pin",
                     child: Text(
                       "Pin/Unpin",
-                      style: TextStyle(color: AppColors.textPrimary),
+                      style: TextStyle(color: cPal.textPrimary),
                     ),
                   ),
-                  const PopupMenuItem(
+                  PopupMenuItem(
                     value: "fav",
                     child: Text(
                       "Favorite/Unfavorite",
-                      style: TextStyle(color: AppColors.textPrimary),
+                      style: TextStyle(color: cPal.textPrimary),
                     ),
                   ),
                   if (canManage) const PopupMenuDivider(),
                   if (canManage)
-                    const PopupMenuItem(
+                    PopupMenuItem(
                       value: "delete",
                       child: Text(
                         "Delete",
-                        style: TextStyle(color: AppColors.textPrimary),
+                        style: TextStyle(color: cPal.textPrimary),
                       ),
                     ),
                 ],
-                child: const Padding(
-                  padding: EdgeInsets.only(top: 2),
-                  child: Icon(Icons.more_vert, color: AppColors.textSecondary),
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Icon(Icons.more_vert, color: cPal.textSecondary),
                 ),
               ),
             ],
           );
         }
 
-        // ✅ MENU ONLY ACTIONS
         Widget rightActionsMenuOnly() {
           return PopupMenuButton<String>(
             tooltip: "Actions",
-            color: AppColors.surface,
+            color: cPal.surface,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
@@ -1010,37 +998,37 @@ class _ProjectTile extends StatelessWidget {
             },
             itemBuilder: (_) => [
               if (canManage)
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: "invite",
                   child: Row(
                     children: [
                       Icon(
                         Icons.person_add_alt_1,
                         size: 18,
-                        color: AppColors.textSecondary,
+                        color: cPal.textSecondary,
                       ),
-                      SizedBox(width: 10),
+                      const SizedBox(width: 10),
                       Text(
                         "Invite members",
-                        style: TextStyle(color: AppColors.textPrimary),
+                        style: TextStyle(color: cPal.textPrimary),
                       ),
                     ],
                   ),
                 ),
               if (canManage)
-                const PopupMenuItem(
+                PopupMenuItem(
                   value: "edit",
                   child: Row(
                     children: [
                       Icon(
                         Icons.edit_outlined,
                         size: 18,
-                        color: AppColors.textSecondary,
+                        color: cPal.textSecondary,
                       ),
-                      SizedBox(width: 10),
+                      const SizedBox(width: 10),
                       Text(
                         "Edit project",
-                        style: TextStyle(color: AppColors.textPrimary),
+                        style: TextStyle(color: cPal.textPrimary),
                       ),
                     ],
                   ),
@@ -1052,12 +1040,12 @@ class _ProjectTile extends StatelessWidget {
                     Icon(
                       isPinned ? Icons.push_pin : Icons.push_pin_outlined,
                       size: 18,
-                      color: isPinned ? Colors.red : AppColors.textSecondary,
+                      color: isPinned ? Colors.red : cPal.textSecondary,
                     ),
                     const SizedBox(width: 10),
                     Text(
                       isPinned ? "Unpin" : "Pin",
-                      style: const TextStyle(color: AppColors.textPrimary),
+                      style: TextStyle(color: cPal.textPrimary),
                     ),
                   ],
                 ),
@@ -1069,12 +1057,12 @@ class _ProjectTile extends StatelessWidget {
                     Icon(
                       isFavorite ? Icons.star : Icons.star_border,
                       size: 18,
-                      color: isFavorite ? Colors.amber : AppColors.textSecondary,
+                      color: isFavorite ? Colors.amber : cPal.textSecondary,
                     ),
                     const SizedBox(width: 10),
                     Text(
                       isFavorite ? "Unfavorite" : "Favorite",
-                      style: const TextStyle(color: AppColors.textPrimary),
+                      style: TextStyle(color: cPal.textPrimary),
                     ),
                   ],
                 ),
@@ -1091,17 +1079,14 @@ class _ProjectTile extends StatelessWidget {
                         color: Color(0xFFEF4444),
                       ),
                       SizedBox(width: 10),
-                      Text(
-                        "Delete",
-                        style: TextStyle(color: AppColors.textPrimary),
-                      ),
+                      Text("Delete"),
                     ],
                   ),
                 ),
             ],
-            child: const Padding(
-              padding: EdgeInsets.only(top: 2),
-              child: Icon(Icons.more_vert, color: AppColors.textSecondary),
+            child: Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Icon(Icons.more_vert, color: cPal.textSecondary),
             ),
           );
         }
@@ -1112,9 +1097,9 @@ class _ProjectTile extends StatelessWidget {
             child: Container(
               height: double.infinity,
               decoration: BoxDecoration(
-                color: AppColors.surface2,
+                color: cPal.surface2,
                 borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: AppColors.border),
+                border: Border.all(color: cPal.border),
               ),
               padding: const EdgeInsets.symmetric(vertical: 12),
               child: Column(
@@ -1122,8 +1107,8 @@ class _ProjectTile extends StatelessWidget {
                 children: [
                   Text(
                     keyText.length >= 2 ? keyText.substring(0, 2) : keyText,
-                    style: const TextStyle(
-                      color: AppColors.textPrimary,
+                    style: TextStyle(
+                      color: cPal.textPrimary,
                       fontWeight: FontWeight.w900,
                       letterSpacing: 1.0,
                     ),
@@ -1142,9 +1127,9 @@ class _ProjectTile extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                color: AppColors.surface,
+                color: cPal.surface,
                 borderRadius: BorderRadius.circular(18),
-                border: Border.all(color: AppColors.border),
+                border: Border.all(color: cPal.border),
               ),
               child: IntrinsicHeight(
                 child: Row(
@@ -1165,8 +1150,8 @@ class _ProjectTile extends StatelessWidget {
                                   children: [
                                     Text(
                                       name,
-                                      style: const TextStyle(
-                                        color: AppColors.textPrimary,
+                                      style: TextStyle(
+                                        color: cPal.textPrimary,
                                         fontSize: 15,
                                         fontWeight: FontWeight.w800,
                                         height: 1.1,
@@ -1176,16 +1161,14 @@ class _ProjectTile extends StatelessWidget {
                                     Wrap(
                                       spacing: 8,
                                       runSpacing: 8,
-                                      crossAxisAlignment:
-                                          WrapCrossAlignment.center,
+                                      crossAxisAlignment: WrapCrossAlignment.center,
                                       children: [
                                         Text(
-                                          (description == null ||
-                                                  description!.trim().isEmpty)
+                                          (description == null || description!.trim().isEmpty)
                                               ? "No description"
                                               : description!.trim(),
-                                          style: const TextStyle(
-                                            color: AppColors.textSecondary,
+                                          style: TextStyle(
+                                            color: cPal.textSecondary,
                                             fontSize: 12.5,
                                             height: 1.35,
                                           ),
@@ -1202,14 +1185,10 @@ class _ProjectTile extends StatelessWidget {
                                 const SizedBox(
                                   height: 20,
                                   width: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                  ),
+                                  child: CircularProgressIndicator(strokeWidth: 2),
                                 )
                               else
-                                (narrow || veryNarrow
-                                    ? rightActionsMenuOnly()
-                                    : rightActionsInline()),
+                                (narrow || veryNarrow ? rightActionsMenuOnly() : rightActionsInline()),
                             ],
                           ),
                           const Spacer(),
@@ -1247,8 +1226,10 @@ class _EditProjectDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.c;
+
     return Dialog(
-      backgroundColor: AppColors.surface,
+      backgroundColor: c.surface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 520),
@@ -1340,6 +1321,7 @@ class _EditProjectFormState extends State<_EditProjectForm> {
   @override
   Widget build(BuildContext context) {
     final isMobile = Responsive.isMobile(context);
+    final c = context.c;
 
     return SingleChildScrollView(
       padding: EdgeInsets.fromLTRB(
@@ -1356,10 +1338,10 @@ class _EditProjectFormState extends State<_EditProjectForm> {
           children: [
             Row(
               children: [
-                const Text(
+                Text(
                   "Edit project",
                   style: TextStyle(
-                    color: AppColors.textPrimary,
+                    color: c.textPrimary,
                     fontSize: 16,
                     fontWeight: FontWeight.w800,
                   ),
@@ -1368,14 +1350,14 @@ class _EditProjectFormState extends State<_EditProjectForm> {
                 IconButton(
                   tooltip: "Close",
                   onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close, color: AppColors.textSecondary),
+                  icon: Icon(Icons.close, color: c.textSecondary),
                 ),
               ],
             ),
             const SizedBox(height: 6),
-            const Text(
+            Text(
               "Update name, key, or description.",
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+              style: TextStyle(color: c.textSecondary, fontSize: 12),
             ),
             const SizedBox(height: 14),
             const _FieldLabel("Name"),
@@ -1383,8 +1365,7 @@ class _EditProjectFormState extends State<_EditProjectForm> {
             TextFormField(
               controller: _nameCtrl,
               decoration: const InputDecoration(hintText: "Project name"),
-              validator: (v) =>
-                  (v == null || v.trim().isEmpty) ? "Name is required" : null,
+              validator: (v) => (v == null || v.trim().isEmpty) ? "Name is required" : null,
               textInputAction: TextInputAction.next,
             ),
             const SizedBox(height: 12),
@@ -1442,12 +1423,10 @@ class _EditProjectFormState extends State<_EditProjectForm> {
     final key = _keyCtrl.text.trim();
     final desc = _descCtrl.text.trim();
 
-    // send only changed fields (keeps backend patch clean)
     final String? sendName = name != widget.initialName ? name : null;
     final String? sendKey = key != widget.initialKey ? key : null;
-    final String? sendDesc = (desc != (widget.initialDescription ?? ""))
-        ? (desc.isEmpty ? "" : desc)
-        : null;
+    final String? sendDesc =
+        (desc != (widget.initialDescription ?? "")) ? (desc.isEmpty ? "" : desc) : null;
 
     if (sendName == null && sendKey == null && sendDesc == null) {
       Navigator.pop(context);
@@ -1480,8 +1459,10 @@ class _InviteMembersDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.c;
+
     return Dialog(
-      backgroundColor: AppColors.surface,
+      backgroundColor: c.surface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 580),
@@ -1588,11 +1569,12 @@ class _InviteMembersFormState extends State<_InviteMembersForm> {
   @override
   Widget build(BuildContext context) {
     final isMobile = Responsive.isMobile(context);
+    final c = context.c;
 
     return BlocConsumer<InviteMembersCubit, InviteMembersState>(
-      listenWhen: (p, c) =>
-          (p.error != c.error && c.error != null) ||
-          (p.invited != c.invited && c.invited != null),
+      listenWhen: (p, cState) =>
+          (p.error != cState.error && cState.error != null) ||
+          (p.invited != cState.invited && cState.invited != null),
       listener: (context, state) {
         if (state.error != null) {
           AppToast.show(context, isError: true, message: state.error!);
@@ -1625,10 +1607,10 @@ class _InviteMembersFormState extends State<_InviteMembersForm> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
+                        Text(
                           "Invite members",
                           style: TextStyle(
-                            color: AppColors.textPrimary,
+                            color: c.textPrimary,
                             fontSize: 16,
                             fontWeight: FontWeight.w800,
                           ),
@@ -1636,8 +1618,8 @@ class _InviteMembersFormState extends State<_InviteMembersForm> {
                         const SizedBox(height: 4),
                         Text(
                           "${widget.projectName} • ${widget.projectKey}",
-                          style: const TextStyle(
-                            color: AppColors.textSecondary,
+                          style: TextStyle(
+                            color: c.textSecondary,
                             fontSize: 12,
                           ),
                         ),
@@ -1647,17 +1629,17 @@ class _InviteMembersFormState extends State<_InviteMembersForm> {
                   IconButton(
                     tooltip: "Close",
                     onPressed: sending ? null : () => Navigator.pop(context),
-                    icon: const Icon(
+                    icon: Icon(
                       Icons.close,
-                      color: AppColors.textSecondary,
+                      color: c.textSecondary,
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 10),
-              const Text(
+              Text(
                 "Add emails one by one. Tap Add to include them.",
-                style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                style: TextStyle(color: c.textSecondary, fontSize: 12),
               ),
               const SizedBox(height: 12),
               Row(
@@ -1692,9 +1674,9 @@ class _InviteMembersFormState extends State<_InviteMembersForm> {
                   width: double.infinity,
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: AppColors.surface2,
+                    color: c.surface2,
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: AppColors.border),
+                    border: Border.all(color: c.border),
                   ),
                   child: Wrap(
                     spacing: 8,
@@ -1704,15 +1686,15 @@ class _InviteMembersFormState extends State<_InviteMembersForm> {
                           (e) => Chip(
                             label: Text(
                               e,
-                              style: const TextStyle(
-                                color: AppColors.textPrimary,
+                              style: TextStyle(
+                                color: c.textPrimary,
                               ),
                             ),
-                            deleteIconColor: AppColors.textSecondary,
+                            deleteIconColor: c.textSecondary,
                             onDeleted: sending ? null : () => _removeEmail(e),
-                            backgroundColor: AppColors.surface,
+                            backgroundColor: c.surface,
                             shape: StadiumBorder(
-                              side: BorderSide(color: AppColors.border),
+                              side: BorderSide(color: c.border),
                             ),
                           ),
                         )
@@ -1725,14 +1707,14 @@ class _InviteMembersFormState extends State<_InviteMembersForm> {
                   width: double.infinity,
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: AppColors.surface2,
+                    color: c.surface2,
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: AppColors.border),
+                    border: Border.all(color: c.border),
                   ),
-                  child: const Text(
+                  child: Text(
                     "No emails added yet.",
                     style: TextStyle(
-                      color: AppColors.textSecondary,
+                      color: c.textSecondary,
                       fontSize: 12,
                     ),
                   ),
@@ -1799,12 +1781,13 @@ class _EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isMobile = Responsive.isMobile(context);
+    final c = context.c;
 
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: c.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
+        border: Border.all(color: c.border),
       ),
       padding: EdgeInsets.all(isMobile ? 14 : 18),
       child: Center(
@@ -1815,26 +1798,24 @@ class _EmptyState extends StatelessWidget {
             children: [
               Icon(
                 hasSearch ? Icons.search_off : Icons.folder_open,
-                color: AppColors.textSecondary,
+                color: c.textSecondary,
                 size: 44,
               ),
               const SizedBox(height: 12),
               Text(
                 hasSearch ? "No results" : "No projects yet",
-                style: const TextStyle(
-                  color: AppColors.textPrimary,
+                style: TextStyle(
+                  color: c.textPrimary,
                   fontSize: 16,
                   fontWeight: FontWeight.w800,
                 ),
               ),
               const SizedBox(height: 6),
               Text(
-                hasSearch
-                    ? "Try a different keyword."
-                    : "Create your first project to start tracking issues.",
+                hasSearch ? "Try a different keyword." : "Create your first project to start tracking issues.",
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: AppColors.textSecondary,
+                style: TextStyle(
+                  color: c.textSecondary,
                   fontSize: 12,
                 ),
               ),
@@ -1864,8 +1845,10 @@ class _CreateProjectDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.c;
+
     return Dialog(
-      backgroundColor: AppColors.surface,
+      backgroundColor: c.surface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 520),
@@ -1929,10 +1912,10 @@ class _CreateProjectFormState extends State<_CreateProjectForm> {
           children: [
             Row(
               children: [
-                const Text(
+                Text(
                   "Create project",
                   style: TextStyle(
-                    color: AppColors.textPrimary,
+                    color: context.c.textPrimary,
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
                   ),
@@ -1941,14 +1924,14 @@ class _CreateProjectFormState extends State<_CreateProjectForm> {
                 IconButton(
                   tooltip: "Close",
                   onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close, color: AppColors.textSecondary),
+                  icon: Icon(Icons.close, color: context.c.textSecondary),
                 ),
               ],
             ),
             const SizedBox(height: 6),
-            const Text(
+            Text(
               "Name your project and choose a unique key.",
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+              style: TextStyle(color: context.c.textSecondary, fontSize: 12),
             ),
             const SizedBox(height: 14),
             const _FieldLabel("Name"),
@@ -1958,8 +1941,7 @@ class _CreateProjectFormState extends State<_CreateProjectForm> {
               decoration: const InputDecoration(
                 hintText: "e.g. IssueFlow Mobile",
               ),
-              validator: (v) =>
-                  (v == null || v.trim().isEmpty) ? "Name is required" : null,
+              validator: (v) => (v == null || v.trim().isEmpty) ? "Name is required" : null,
               textInputAction: TextInputAction.next,
             ),
             const SizedBox(height: 12),
@@ -2039,8 +2021,8 @@ class _FieldLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       text,
-      style: const TextStyle(
-        color: AppColors.textSecondary,
+      style: TextStyle(
+        color: context.c.textSecondary,
         fontSize: 12,
         fontWeight: FontWeight.w600,
       ),
@@ -2057,8 +2039,10 @@ class _InvitesDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.c;
+
     return Dialog(
-      backgroundColor: AppColors.surface,
+      backgroundColor: c.surface,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 620),
@@ -2095,10 +2079,12 @@ class _InvitesContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final c = context.c;
+
     return BlocConsumer<InvitesBloc, InvitesState>(
-      listenWhen: (p, c) =>
-          (p.error != c.error && c.error != null) ||
-          (p.acceptedToken != c.acceptedToken && c.acceptedToken != null),
+      listenWhen: (p, st) =>
+          (p.error != st.error && st.error != null) ||
+          (p.acceptedToken != st.acceptedToken && st.acceptedToken != null),
       listener: (context, state) {
         if (state.error != null) {
           AppToast.show(context, message: state.error!, isError: true);
@@ -2122,16 +2108,16 @@ class _InvitesContent extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.mail_outline,
-                    color: AppColors.textSecondary,
+                    color: c.textSecondary,
                   ),
                   const SizedBox(width: 10),
-                  const Expanded(
+                  Expanded(
                     child: Text(
                       "Project invites",
                       style: TextStyle(
-                        color: AppColors.textPrimary,
+                        color: c.textPrimary,
                         fontSize: 16,
                         fontWeight: FontWeight.w800,
                       ),
@@ -2139,30 +2125,26 @@ class _InvitesContent extends StatelessWidget {
                   ),
                   IconButton(
                     tooltip: "Refresh",
-                    onPressed: loading
-                        ? null
-                        : () => context.read<InvitesBloc>().add(
-                              const InvitesFetchRequested(),
-                            ),
-                    icon: const Icon(
+                    onPressed: loading ? null : () => context.read<InvitesBloc>().add(const InvitesFetchRequested()),
+                    icon: Icon(
                       Icons.refresh,
-                      color: AppColors.textSecondary,
+                      color: c.textSecondary,
                     ),
                   ),
                   IconButton(
                     tooltip: "Close",
                     onPressed: loading ? null : () => Navigator.pop(context),
-                    icon: const Icon(
+                    icon: Icon(
                       Icons.close,
-                      color: AppColors.textSecondary,
+                      color: c.textSecondary,
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 6),
-              const Text(
+              Text(
                 "Accept an invite to join the project instantly.",
-                style: TextStyle(color: AppColors.textSecondary, fontSize: 12),
+                style: TextStyle(color: c.textSecondary, fontSize: 12),
               ),
               const SizedBox(height: 14),
               if (loading)
@@ -2175,13 +2157,13 @@ class _InvitesContent extends StatelessWidget {
                   width: double.infinity,
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: AppColors.surface2,
+                    color: c.surface2,
                     borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: AppColors.border),
+                    border: Border.all(color: c.border),
                   ),
-                  child: const Text(
+                  child: Text(
                     "No pending invites",
-                    style: TextStyle(color: AppColors.textSecondary),
+                    style: TextStyle(color: c.textSecondary),
                   ),
                 )
               else
@@ -2195,17 +2177,15 @@ class _InvitesContent extends StatelessWidget {
                     final accepting = state.acceptingToken == inv.token;
 
                     final dynamic any = inv as dynamic;
-                    final String projectName =
-                        (any.projectName ?? "").toString();
-                    final String invitedByEmail =
-                        (any.invitedByEmail ?? "").toString();
+                    final String projectName = (any.projectName ?? "").toString();
+                    final String invitedByEmail = (any.invitedByEmail ?? "").toString();
 
                     return Container(
                       padding: const EdgeInsets.all(14),
                       decoration: BoxDecoration(
-                        color: AppColors.surface,
+                        color: c.surface,
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: AppColors.border),
+                        border: Border.all(color: c.border),
                       ),
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2214,13 +2194,13 @@ class _InvitesContent extends StatelessWidget {
                             width: 44,
                             height: 44,
                             decoration: BoxDecoration(
-                              color: AppColors.surface2,
+                              color: c.surface2,
                               borderRadius: BorderRadius.circular(14),
-                              border: Border.all(color: AppColors.border),
+                              border: Border.all(color: c.border),
                             ),
-                            child: const Icon(
+                            child: Icon(
                               Icons.folder_open,
-                              color: AppColors.textSecondary,
+                              color: c.textSecondary,
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -2229,11 +2209,9 @@ class _InvitesContent extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  projectName.isEmpty
-                                      ? "Project invite"
-                                      : projectName,
-                                  style: const TextStyle(
-                                    color: AppColors.textPrimary,
+                                  projectName.isEmpty ? "Project invite" : projectName,
+                                  style: TextStyle(
+                                    color: c.textPrimary,
                                     fontSize: 14,
                                     fontWeight: FontWeight.w800,
                                   ),
@@ -2241,19 +2219,17 @@ class _InvitesContent extends StatelessWidget {
                                 const SizedBox(height: 6),
                                 Row(
                                   children: [
-                                    const Icon(
+                                    Icon(
                                       Icons.person_outline,
                                       size: 16,
-                                      color: AppColors.textSecondary,
+                                      color: c.textSecondary,
                                     ),
                                     const SizedBox(width: 6),
                                     Expanded(
                                       child: Text(
-                                        invitedByEmail.isEmpty
-                                            ? "Invited by: (unknown)"
-                                            : "Invited by: $invitedByEmail",
-                                        style: const TextStyle(
-                                          color: AppColors.textSecondary,
+                                        invitedByEmail.isEmpty ? "Invited by: (unknown)" : "Invited by: $invitedByEmail",
+                                        style: TextStyle(
+                                          color: c.textSecondary,
                                           fontSize: 12,
                                         ),
                                         overflow: TextOverflow.ellipsis,
@@ -2264,16 +2240,16 @@ class _InvitesContent extends StatelessWidget {
                                 const SizedBox(height: 6),
                                 Row(
                                   children: [
-                                    const Icon(
+                                    Icon(
                                       Icons.schedule,
                                       size: 16,
-                                      color: AppColors.textSecondary,
+                                      color: c.textSecondary,
                                     ),
                                     const SizedBox(width: 6),
                                     Text(
                                       "Expires: ${_fmtDate(inv.expiresAt)}",
-                                      style: const TextStyle(
-                                        color: AppColors.textSecondary,
+                                      style: TextStyle(
+                                        color: c.textSecondary,
                                         fontSize: 12,
                                       ),
                                     ),
@@ -2297,9 +2273,7 @@ class _InvitesContent extends StatelessWidget {
                                   ? const SizedBox(
                                       height: 16,
                                       width: 16,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                      ),
+                                      child: CircularProgressIndicator(strokeWidth: 2),
                                     )
                                   : const Text("Accept"),
                             ),

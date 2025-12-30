@@ -3,7 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:issueflow_fronted/features/projects/presentation/bloc/project/projects_bloc.dart';
 import 'package:issueflow_fronted/features/projects/presentation/bloc/project/projects_event.dart';
 
-import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_palette.dart';
 import '../../../../core/widgets/responsive/responsive.dart';
 import '../../../dashboard/presentation/pages/dashboard_page.dart';
 import '../../../issues/presentation/pages/issues_page.dart';
@@ -66,12 +66,14 @@ class _ShellPageState extends State<ShellPage> {
     final isMobile = Responsive.isMobile(context);
     final isDesktop = Responsive.isDesktop(context);
 
+    final c = context.c;
+
     return BlocBuilder<ShellBloc, ShellState>(
       builder: (context, state) {
         final idx = _indexForTab(state.selected);
 
         final content = Container(
-          color: AppColors.bg,
+          color: c.bg,
           child: IndexedStack(
             index: idx,
             children: _pages,
@@ -125,7 +127,7 @@ class _ShellPageState extends State<ShellPage> {
                   ),
                 ),
               ),
-              const VerticalDivider(width: 1, thickness: 1),
+              VerticalDivider(width: 1, thickness: 1, color: c.border),
               Expanded(child: content),
             ],
           ),

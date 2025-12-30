@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:issueflow_fronted/core/widgets/app_toast.dart';
 
-import '../../../../core/theme/app_colors.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
@@ -31,6 +30,7 @@ class _RegisterPageState extends State<RegisterPage> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final cs = theme.colorScheme;
 
     return BlocListener<AuthBloc, AuthState>(
       listener: (context, state) {
@@ -38,14 +38,17 @@ class _RegisterPageState extends State<RegisterPage> {
           AppToast.show(context, message: state.message, isError: true);
         }
 
-        // If registration succeeded, AuthBloc emits Authenticated.
-        // We pop back to login page; AppGate will show onboarding automatically.
         if (state is Authenticated) {
           Navigator.of(context).pop();
         }
       },
       child: Scaffold(
-        appBar: AppBar(title: const Text('Create account')),
+        appBar: AppBar(
+          title: const Text('Create account'),
+          backgroundColor: cs.surface,
+          elevation: 0,
+          foregroundColor: cs.onSurface,
+        ),
         body: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 460),
@@ -54,9 +57,9 @@ class _RegisterPageState extends State<RegisterPage> {
               child: Container(
                 padding: const EdgeInsets.all(18),
                 decoration: BoxDecoration(
-                  color: AppColors.surface,
+                  color: cs.surface,
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: AppColors.border),
+                  border: Border.all(color: theme.dividerColor),
                 ),
                 child: BlocBuilder<AuthBloc, AuthState>(
                   builder: (context, state) {
@@ -109,20 +112,18 @@ class _RegisterPageState extends State<RegisterPage> {
                                 ? null
                                 : () {
                                     context.read<AuthBloc>().add(
-                                      AuthRegisterRequested(
-                                        username: username.text,
-                                        email: email.text,
-                                        password: password.text,
-                                      ),
-                                    );
+                                          AuthRegisterRequested(
+                                            username: username.text,
+                                            email: email.text,
+                                            password: password.text,
+                                          ),
+                                        );
                                   },
                             child: isLoading
                                 ? const SizedBox(
                                     height: 18,
                                     width: 18,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                    ),
+                                    child: CircularProgressIndicator(strokeWidth: 2),
                                   )
                                 : const Text('Create account'),
                           ),

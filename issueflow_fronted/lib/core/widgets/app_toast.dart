@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
+import '../theme/app_palette.dart';
 
 /// Jira-like toast using Overlay (so it matches theme and doesn't look like default SnackBar).
 /// - Desktop/Web: top-right
@@ -12,13 +12,14 @@ class AppToast {
     Duration duration = const Duration(seconds: 3),
   }) {
     final overlay = Overlay.of(context);
-
     final isMobile = MediaQuery.of(context).size.width < 600;
 
     final entry = OverlayEntry(
       builder: (ctx) {
-        final bg = isError ? const Color(0xFF7F1D1D) : AppColors.surface2;
-        final border = isError ? const Color(0xFFB91C1C) : AppColors.border;
+        final c = Theme.of(ctx).extension<AppPalette>()!;
+
+        final bg = isError ? const Color(0xFF7F1D1D) : c.surface2;
+        final border = isError ? const Color(0xFFB91C1C) : c.border;
 
         return Positioned(
           top: isMobile ? null : 16,
@@ -40,14 +41,14 @@ class AppToast {
                 children: [
                   Icon(
                     isError ? Icons.error_outline : Icons.check_circle_outline,
-                    color: isError ? const Color(0xFFFCA5A5) : AppColors.textSecondary,
+                    color: isError ? const Color(0xFFFCA5A5) : c.textSecondary,
                     size: 18,
                   ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
                       message,
-                      style: const TextStyle(color: AppColors.textPrimary, fontSize: 13),
+                      style: TextStyle(color: c.textPrimary, fontSize: 13),
                       overflow: TextOverflow.ellipsis,
                       maxLines: 3,
                     ),
@@ -61,8 +62,6 @@ class AppToast {
     );
 
     overlay.insert(entry);
-    Future.delayed(duration, () {
-      entry.remove();
-    });
+    Future.delayed(duration, () => entry.remove());
   }
 }

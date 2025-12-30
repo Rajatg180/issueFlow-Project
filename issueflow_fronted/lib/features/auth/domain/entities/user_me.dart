@@ -1,7 +1,7 @@
 class UserMe {
   final String id;
   final String email;
-  final String username; // ✅ NEW
+  final String username; 
   final bool hasCompletedOnboarding;
 
   const UserMe({
