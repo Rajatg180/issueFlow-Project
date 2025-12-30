@@ -25,12 +25,13 @@ class _ProjectsPageState extends State<ProjectsPage> {
   final _searchCtrl = TextEditingController();
   String _query = "";
 
+  ProjectsState? _lastProjectsState;
+
   @override
   void initState() {
     super.initState();
     context.read<ProjectsBloc>().add(const ProjectsFetchRequested());
 
-    // Optional: also fetch invites once when landing on Projects (so badge appears immediately)
     try {
       context.read<InvitesBloc>().add(const InvitesFetchRequested());
     } catch (_) {}
@@ -68,13 +69,13 @@ class _ProjectsPageState extends State<ProjectsPage> {
     );
   }
 
-  // ✅ OPEN INVITES AS DIALOG/SHEET (NO SEPARATE PAGE)
+
   Future<void> _openInvites(BuildContext context) async {
     final isMobile = Responsive.isMobile(context);
 
     final invitesBloc = context.read<InvitesBloc>();
 
-    // fetch invites before opening
+
     invitesBloc.add(const InvitesFetchRequested());
 
     if (isMobile) {
@@ -104,20 +105,43 @@ class _ProjectsPageState extends State<ProjectsPage> {
   Widget build(BuildContext context) {
     final isMobile = Responsive.isMobile(context);
 
-    // ✅ live pending invites count for badge
+
     final invitesCount = context.select(
       (InvitesBloc b) => b.state.invites.length,
     );
 
     return BlocConsumer<ProjectsBloc, ProjectsState>(
-      listenWhen: (prev, curr) =>
-          prev.error != curr.error && curr.error != null,
+
+      listenWhen: (prev, curr) => true,
       listener: (context, state) {
-        AppToast.show(
-          context,
-          message: state.error!.replaceFirst('Exception: ', ''),
-          isError: true,
-        );
+        final prev = _lastProjectsState;
+
+
+        if (state.error != null && (prev == null || prev.error != state.error)) {
+          AppToast.show(
+            context,
+            message: state.error!.replaceFirst('Exception: ', ''),
+            isError: true,
+          );
+        } else if (prev != null) {
+
+          if (prev.creating && !state.creating && state.error == null) {
+            AppToast.show(context, message: "Project created");
+          }
+
+
+          if (prev.deletingId != null && state.deletingId == null && state.error == null) {
+            AppToast.show(context, message: "Project deleted");
+          }
+
+
+          if (prev.editingId != null && state.editingId == null && state.error == null) {
+            AppToast.show(context, message: "Project updated");
+          }
+        }
+
+
+        _lastProjectsState = state;
       },
       builder: (context, state) {
         final items = state.items.where((p) {
@@ -649,9 +673,9 @@ class _Body extends StatelessWidget {
                 isPinned: p.isPinned,
                 isDeleting: deletingId == p.id,
                 isUpdatingPref: updatingPrefId == p.id,
-                isEditing: editingId == p.id, // ✅ NEW
+                isEditing: editingId == p.id, 
                 role: p.role,
-                onTap: () => AppToast.show(context, message: "Selected ${p.key}"),
+                onTap: () {},
               );
             },
           ),

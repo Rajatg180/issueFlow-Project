@@ -46,5 +46,19 @@ abstract class IssuesRepository {
     required String issueId,
     required String body,
   });
+
+   Future<IssueCommentEntity> updateIssueComment({
+    required String projectId,
+    required String issueId,
+    required String commentId,
+    required String body,
+  });
+
+
+  Future<void> deleteIssueComment({
+    required String projectId,
+    required String issueId,
+    required String commentId,
+  });
   
 }

@@ -1,18 +1,27 @@
+import 'dart:convert';
 import 'dart:math' as math;
+
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:issueflow_fronted/features/issues/presentation/bloc/issues/issues_bloc.dart';
-import 'package:issueflow_fronted/features/issues/presentation/bloc/issues/issues_event.dart';
-import 'package:issueflow_fronted/features/issues/presentation/bloc/issues/issues_state.dart';
 
+import '../../../../core/errors/app_exception.dart';
+import '../../../../core/storage/token_storage.dart';
+import '../../../../core/config/app_config.dart';
 import '../../../../core/theme/app_colors.dart';
+
 import '../../domain/entities/issue_entity.dart';
 import '../../domain/entities/project_user_entity.dart';
 import '../../domain/entities/issue_comment_entity.dart';
+
+import '../bloc/issues/issues_bloc.dart';
+import '../bloc/issues/issues_event.dart';
+import '../bloc/issues/issues_state.dart';
+
 import '../bloc/comments/comments_bloc.dart';
 import '../bloc/comments/comments_event.dart';
 import '../bloc/comments/comments_state.dart';
+
 import 'priority_badge.dart';
 import 'status_badge.dart';
 
@@ -57,8 +66,12 @@ class _IssuesTableState extends State<IssuesTable> {
   static const String _kAssigneeUnassigned = '__ASSIGNEE_UNASSIGNED__';
   String _assigneeFilter = _kAssigneeAll;
 
-  // ✅ Comments composer controller (backend-synced now)
+  // ✅ Comments composer controller
   final TextEditingController _chatCtrl = TextEditingController();
+
+  // ✅ Track which issue comments panel is currently opened.
+  // This is the key fix: state handling becomes stable and doesn't "jump" between issues.
+  String? _activeCommentsIssueId;
 
   @override
   void dispose() {
@@ -603,7 +616,7 @@ class _IssuesTableState extends State<IssuesTable> {
     return c;
   }
 
-  // ---------- ASSIGNEE STRIP (unchanged) ----------
+  // ---------- ASSIGNEE STRIP ----------
   Widget _assigneeStrip() {
     final users = widget.projectUsers;
 
@@ -741,20 +754,16 @@ class _IssuesTableState extends State<IssuesTable> {
     );
   }
 
-  // ---------- COMMENTS (backend synced) ----------
+  // ---------- COMMENTS ----------
   bool _isMobileLike(BuildContext context) => MediaQuery.of(context).size.width < 720;
-
-  int _commentCountForIssue(CommentsState state, String issueId) {
-    if (state is CommentsLoaded && state.issueId == issueId) {
-      return state.comments.length;
-    }
-    return 0;
-  }
 
   void _openComments(IssueEntity issue) {
     _chatCtrl.clear();
 
-    // ✅ Load from backend (REST)
+    setState(() {
+      _activeCommentsIssueId = issue.id;
+    });
+
     context.read<CommentsBloc>().add(
           CommentsOpenRequested(projectId: widget.projectId, issueId: issue.id),
         );
@@ -766,35 +775,36 @@ class _IssuesTableState extends State<IssuesTable> {
     }
   }
 
- Widget _commentsCell(IssueEntity issue) {
-  final count = issue.commentsCount;
+  // ✅ Always show the backend count on the table (no state-dependent "only after click" issue).
+  Widget _commentsCell(IssueEntity issue) {
+    final count = issue.commentsCount;
 
-  return InkWell(
-    borderRadius: BorderRadius.circular(10),
-    onTap: () => _openComments(issue), // still loads full comments on click
-    child: Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      decoration: BoxDecoration(
-        color: AppColors.surface2,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.border),
+    return InkWell(
+      borderRadius: BorderRadius.circular(10),
+      onTap: () => _openComments(issue),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: AppColors.surface2,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.chat_bubble_outline, size: 16, color: AppColors.mutedText),
+            const SizedBox(width: 8),
+            Text(
+              count == 0 ? 'Add comment' : '$count comments',
+              style: const TextStyle(fontSize: 12),
+            ),
+            const SizedBox(width: 6),
+            const Icon(Icons.chevron_right_rounded, size: 18, color: AppColors.mutedText),
+          ],
+        ),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.chat_bubble_outline, size: 16, color: AppColors.mutedText),
-          const SizedBox(width: 8),
-          Text(
-            count == 0 ? 'Add comment' : '$count comments',
-            style: const TextStyle(fontSize: 12),
-          ),
-          const SizedBox(width: 6),
-          const Icon(Icons.chevron_right_rounded, size: 18, color: AppColors.mutedText),
-        ],
-      ),
-    ),
-  );
-}
+    );
+  }
 
   void _openCommentsBottomSheet(IssueEntity issue) {
     showModalBottomSheet(
@@ -840,7 +850,13 @@ class _IssuesTableState extends State<IssuesTable> {
           ),
         );
       },
-    );
+    ).whenComplete(() {
+      if (mounted) {
+        setState(() {
+          _activeCommentsIssueId = null;
+        });
+      }
+    });
   }
 
   void _openCommentsSideDrawer(IssueEntity issue) {
@@ -902,7 +918,13 @@ class _IssuesTableState extends State<IssuesTable> {
           child: SlideTransition(position: slide, child: child),
         );
       },
-    );
+    ).then((_) {
+      if (mounted) {
+        setState(() {
+          _activeCommentsIssueId = null;
+        });
+      }
+    });
   }
 
   // ---------- BUILD ----------
@@ -1158,7 +1180,7 @@ class _IssuesTableState extends State<IssuesTable> {
                                         : StatusBadge(status: i.status),
                                   ),
 
-                                  // ✅ Comments (backend)
+                                  // ✅ Comments
                                   DataCell(_commentsCell(i)),
 
                                   // Assignee
@@ -1295,9 +1317,8 @@ class _IssuesTableState extends State<IssuesTable> {
   }
 }
 
-/// Comments drawer / bottom-sheet UI.
-/// ✅ Now shows backend IssueCommentEntity (NOT dummy local chat).
-class IssueCommentsSheet extends StatelessWidget {
+
+class IssueCommentsSheet extends StatefulWidget {
   final String headerTitle;
   final List<ProjectUserEntity> projectUsers;
   final List<IssueCommentEntity> comments;
@@ -1322,6 +1343,106 @@ class IssueCommentsSheet extends StatelessWidget {
     required this.onClose,
     required this.isMobile,
   });
+
+  @override
+  State<IssueCommentsSheet> createState() => _IssueCommentsSheetState();
+}
+
+class _IssueCommentsSheetState extends State<IssueCommentsSheet> {
+  String? _myUserId;
+
+  // ✅ local edit UI state
+  String? _editingId;
+  final TextEditingController _editCtrl = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _loadMyUserId();
+  }
+
+  @override
+  void dispose() {
+    _editCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadMyUserId() async {
+    try {
+      final storage = TokenStorage();
+      final token = await storage.readAccessToken();
+      if (token == null || token.isEmpty) return;
+
+      final parts = token.split('.');
+      if (parts.length < 2) return;
+
+      String normalize(String s) {
+        final mod = s.length % 4;
+        if (mod == 2) return '$s==';
+        if (mod == 3) return '$s=';
+        return s;
+      }
+
+      final payload = utf8.decode(base64Url.decode(normalize(parts[1])));
+      final j = jsonDecode(payload);
+      if (j is! Map) return;
+
+      final v = (j['user_id'] ?? j['sub'] ?? j['id'])?.toString();
+      if (v == null || v.isEmpty) return;
+
+      if (mounted) setState(() => _myUserId = v);
+    } catch (_) {}
+  }
+
+  bool _isMine(IssueCommentEntity c) {
+    final me = _myUserId;
+    if (me == null || me.isEmpty) return false;
+    return c.authorId == me;
+  }
+
+  void _startEdit(IssueCommentEntity c) {
+    setState(() {
+      _editingId = c.id;
+      _editCtrl.text = c.body;
+    });
+  }
+
+  void _cancelEdit() {
+    setState(() {
+      _editingId = null;
+      _editCtrl.clear();
+    });
+  }
+
+  Future<void> _confirmDelete(BuildContext context, IssueCommentEntity c) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (_) {
+        return AlertDialog(
+          title: const Text('Delete comment?'),
+          content: const Text('This action cannot be undone.'),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Delete', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (ok != true) return;
+
+    context.read<CommentsBloc>().add(
+          CommentDeleteRequested(
+            projectId: c.projectId,
+            issueId: c.issueId,
+            commentId: c.id,
+          ),
+        );
+  }
 
   String _initial(String name) {
     final v = name.trim();
@@ -1363,8 +1484,8 @@ class IssueCommentsSheet extends StatelessWidget {
     final w = MediaQuery.of(context).size.width;
     final h = MediaQuery.of(context).size.height;
 
-    final panelWidth = isMobile ? w : math.min(420.0, w * 0.35);
-    final panelHeight = isMobile ? h * 0.92 : h * 0.90;
+    final panelWidth = widget.isMobile ? w : math.min(420.0, w * 0.35);
+    final panelHeight = widget.isMobile ? h * 0.92 : h * 0.90;
 
     return Material(
       color: Colors.transparent,
@@ -1373,7 +1494,7 @@ class IssueCommentsSheet extends StatelessWidget {
         height: panelHeight,
         decoration: BoxDecoration(
           color: AppColors.surface,
-          borderRadius: BorderRadius.circular(isMobile ? 18 : 14),
+          borderRadius: BorderRadius.circular(widget.isMobile ? 18 : 14),
           border: Border.all(color: AppColors.border),
           boxShadow: [
             BoxShadow(
@@ -1396,7 +1517,7 @@ class IssueCommentsSheet extends StatelessWidget {
                 children: [
                   Expanded(
                     child: Text(
-                      headerTitle,
+                      widget.headerTitle,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
@@ -1404,15 +1525,14 @@ class IssueCommentsSheet extends StatelessWidget {
                   ),
                   IconButton(
                     tooltip: 'Close',
-                    onPressed: onClose,
+                    onPressed: widget.onClose,
                     icon: const Icon(Icons.close_rounded, color: AppColors.mutedText),
                   ),
                 ],
               ),
             ),
 
-            // Members strip
-            if (projectUsers.isNotEmpty)
+            if (widget.projectUsers.isNotEmpty)
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
@@ -1422,7 +1542,7 @@ class IssueCommentsSheet extends StatelessWidget {
                     children: [
                       const Icon(Icons.group_outlined, size: 18, color: AppColors.mutedText),
                       const SizedBox(width: 10),
-                      for (final u in projectUsers) ...[
+                      for (final u in widget.projectUsers) ...[
                         Tooltip(
                           message: u.username,
                           child: Padding(
@@ -1440,9 +1560,9 @@ class IssueCommentsSheet extends StatelessWidget {
 
             // Messages
             Expanded(
-              child: loading
+              child: widget.loading
                   ? const Center(child: CircularProgressIndicator())
-                  : comments.isEmpty
+                  : widget.comments.isEmpty
                       ? const Center(
                           child: Text(
                             'No comments yet.\nBe the first to add one.',
@@ -1450,55 +1570,138 @@ class IssueCommentsSheet extends StatelessWidget {
                             style: TextStyle(color: AppColors.mutedText),
                           ),
                         )
-                      : ListView.builder(
-                          padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-                          itemCount: comments.length,
-                          itemBuilder: (ctx, index) {
-                            final c = comments[index];
+                      : BlocBuilder<CommentsBloc, CommentsState>(
+                          builder: (context, st) {
+                            final savingEdit = st is CommentsLoaded ? st.savingEdit : false;
+                            final deleting = st is CommentsLoaded ? st.deleting : false;
 
-                            return Align(
-                              alignment: Alignment.centerLeft,
-                              child: Container(
-                                margin: const EdgeInsets.only(bottom: 10),
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                                constraints: BoxConstraints(maxWidth: math.min(520, w * 0.75)),
-                                decoration: BoxDecoration(
-                                  color: AppColors.surface2.withOpacity(0.7),
-                                  borderRadius: BorderRadius.circular(14),
-                                  border: Border.all(color: AppColors.border),
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      mainAxisSize: MainAxisSize.min,
+                            return ListView.builder(
+                              padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+                              itemCount: widget.comments.length,
+                              itemBuilder: (ctx, index) {
+                                final c = widget.comments[index];
+                                final mine = _isMine(c);
+
+                                final align = mine ? Alignment.centerRight : Alignment.centerLeft;
+                                final bubbleColor = mine
+                                    ? AppColors.surface2.withOpacity(0.95)
+                                    : AppColors.surface2.withOpacity(0.7);
+
+                                final isEditingThis = _editingId == c.id;
+
+                                return Align(
+                                  alignment: align,
+                                  child: Container(
+                                    margin: const EdgeInsets.only(bottom: 10),
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                    constraints: BoxConstraints(maxWidth: math.min(520, w * 0.75)),
+                                    decoration: BoxDecoration(
+                                      color: bubbleColor,
+                                      borderRadius: BorderRadius.circular(14),
+                                      border: Border.all(color: AppColors.border),
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        _avatar(c.authorUsername, size: 22),
-                                        const SizedBox(width: 8),
-                                        Flexible(
-                                          child: Text(
-                                            c.authorUsername,
-                                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
-                                            overflow: TextOverflow.ellipsis,
+                                        Row(
+                                          children: [
+                                            _avatar(c.authorUsername, size: 22),
+                                            const SizedBox(width: 8),
+                                            Expanded(
+                                              child: Text(
+                                                c.authorUsername,
+                                                style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                            ),
+                                            Text(
+                                              _hhmm(c.createdAt.toLocal()),
+                                              style: const TextStyle(fontSize: 11, color: AppColors.mutedText),
+                                            ),
+                                            if (c.edited) ...[
+                                              const SizedBox(width: 6),
+                                              const Text('(edited)',
+                                                  style: TextStyle(fontSize: 11, color: AppColors.mutedText)),
+                                            ],
+
+                                            // ✅ Edit/Delete actions only for my comment
+                                            if (mine) ...[
+                                              const SizedBox(width: 6),
+                                              PopupMenuButton<String>(
+                                                tooltip: '',
+                                                onSelected: (v) {
+                                                  if (v == 'edit') {
+                                                    _startEdit(c);
+                                                  } else if (v == 'delete') {
+                                                    _confirmDelete(context, c);
+                                                  }
+                                                },
+                                                itemBuilder: (_) => [
+                                                  const PopupMenuItem(value: 'edit', child: Text('Edit')),
+                                                  const PopupMenuItem(value: 'delete', child: Text('Delete')),
+                                                ],
+                                                child: const Padding(
+                                                  padding: EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                                                  child: Icon(Icons.more_vert, size: 18, color: AppColors.mutedText),
+                                                ),
+                                              ),
+                                            ],
+                                          ],
+                                        ),
+                                        const SizedBox(height: 8),
+
+                                        if (!isEditingThis) ...[
+                                          Text(c.body, style: const TextStyle(fontSize: 13, height: 1.25)),
+                                        ] else ...[
+                                          TextField(
+                                            controller: _editCtrl,
+                                            maxLines: null,
+                                            decoration: const InputDecoration(
+                                              isDense: true,
+                                              border: OutlineInputBorder(),
+                                            ),
                                           ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Text(
-                                          _hhmm(c.createdAt.toLocal()),
-                                          style: const TextStyle(fontSize: 11, color: AppColors.mutedText),
-                                        ),
-                                        if (c.edited) ...[
-                                          const SizedBox(width: 6),
-                                          const Text('(edited)',
-                                              style: TextStyle(fontSize: 11, color: AppColors.mutedText)),
+                                          const SizedBox(height: 8),
+                                          Row(
+                                            mainAxisAlignment: MainAxisAlignment.end,
+                                            children: [
+                                              OutlinedButton(
+                                                onPressed: savingEdit ? null : _cancelEdit,
+                                                child: const Text('Cancel'),
+                                              ),
+                                              const SizedBox(width: 8),
+                                              ElevatedButton(
+                                                onPressed: (savingEdit || deleting)
+                                                    ? null
+                                                    : () {
+                                                        final t = _editCtrl.text.trim();
+                                                        if (t.isEmpty) return;
+                                                        context.read<CommentsBloc>().add(
+                                                              CommentEditRequested(
+                                                                projectId: c.projectId,
+                                                                issueId: c.issueId,
+                                                                commentId: c.id,
+                                                                body: t,
+                                                              ),
+                                                            );
+                                                        _cancelEdit();
+                                                      },
+                                                child: savingEdit
+                                                    ? const SizedBox(
+                                                        width: 16,
+                                                        height: 16,
+                                                        child: CircularProgressIndicator(strokeWidth: 2),
+                                                      )
+                                                    : const Text('Save'),
+                                              ),
+                                            ],
+                                          ),
                                         ],
                                       ],
                                     ),
-                                    const SizedBox(height: 8),
-                                    Text(c.body, style: const TextStyle(fontSize: 13, height: 1.25)),
-                                  ],
-                                ),
-                              ),
+                                  ),
+                                );
+                              },
                             );
                           },
                         ),
@@ -1513,14 +1716,14 @@ class IssueCommentsSheet extends StatelessWidget {
                 children: [
                   Expanded(
                     child: TextField(
-                      controller: controller,
+                      controller: widget.controller,
                       textInputAction: TextInputAction.send,
                       onSubmitted: (v) {
-                        if (sending) return;
+                        if (widget.sending) return;
                         final t = v.trim();
                         if (t.isEmpty) return;
-                        onSend(t);
-                        controller.clear();
+                        widget.onSend(t);
+                        widget.controller.clear();
                       },
                       decoration: InputDecoration(
                         hintText: 'Write a comment…',
@@ -1541,15 +1744,15 @@ class IssueCommentsSheet extends StatelessWidget {
                   ),
                   const SizedBox(width: 10),
                   ElevatedButton.icon(
-                    onPressed: sending
+                    onPressed: widget.sending
                         ? null
                         : () {
-                            final t = controller.text.trim();
+                            final t = widget.controller.text.trim();
                             if (t.isEmpty) return;
-                            onSend(t);
-                            controller.clear();
+                            widget.onSend(t);
+                            widget.controller.clear();
                           },
-                    icon: sending
+                    icon: widget.sending
                         ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
                         : const Icon(Icons.send_rounded, size: 18),
                     label: const Text('Send'),

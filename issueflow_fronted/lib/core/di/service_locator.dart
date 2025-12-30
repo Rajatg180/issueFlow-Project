@@ -2,10 +2,12 @@ import 'package:get_it/get_it.dart';
 import 'package:http/http.dart' as http;
 import 'package:issueflow_fronted/features/issues/domain/usecase/create_issue_comment_usecase.dart';
 import 'package:issueflow_fronted/features/issues/domain/usecase/create_issue_usecase.dart';
+import 'package:issueflow_fronted/features/issues/domain/usecase/delete_issue_comment_usecase.dart';
 import 'package:issueflow_fronted/features/issues/domain/usecase/delete_issue_usecase.dart';
 import 'package:issueflow_fronted/features/issues/domain/usecase/get_issue_comments_usecase.dart';
 import 'package:issueflow_fronted/features/issues/domain/usecase/get_project_users_usecase.dart';
 import 'package:issueflow_fronted/features/issues/domain/usecase/get_projects_with_issues_usecase.dart';
+import 'package:issueflow_fronted/features/issues/domain/usecase/update_issue_comment_usecase.dart';
 import 'package:issueflow_fronted/features/issues/domain/usecase/update_issue_usecase.dart';
 import 'package:issueflow_fronted/features/issues/presentation/bloc/comments/comments_bloc.dart';
 
@@ -256,6 +258,11 @@ Future<void> setupServiceLocator() async {
   sl.registerLazySingleton<GetIssueCommentsUseCase>(() => GetIssueCommentsUseCase(sl<IssuesRepository>()));
 
   sl.registerLazySingleton<CreateIssueCommentUseCase>(() => CreateIssueCommentUseCase(sl<IssuesRepository>()));
+
+  sl.registerLazySingleton<UpdateIssueCommentUseCase>(() => UpdateIssueCommentUseCase(sl<IssuesRepository>()));
+
+  sl.registerLazySingleton<DeleteIssueCommentUseCase>(() => DeleteIssueCommentUseCase(sl<IssuesRepository>()));
+
   // Bloc
   sl.registerFactory<IssuesBloc>(
     () => IssuesBloc(
@@ -271,6 +278,8 @@ Future<void> setupServiceLocator() async {
     () => CommentsBloc(
       getComments: sl<GetIssueCommentsUseCase>(),
       createComment: sl<CreateIssueCommentUseCase>(),
+      updateComment: sl<UpdateIssueCommentUseCase>(),
+      deleteComment: sl<DeleteIssueCommentUseCase>(),
     ),
   );
 }

@@ -1,6 +1,5 @@
-import 'package:issueflow_fronted/features/issues/domain/entities/issue_comment_entity.dart';
-
 import '../../../../core/errors/app_exception.dart';
+import '../../domain/entities/issue_comment_entity.dart';
 import '../../domain/entities/issue_entity.dart';
 import '../../domain/entities/project_user_entity.dart';
 import '../../domain/entities/project_with_issues_entity.dart';
@@ -97,7 +96,6 @@ class IssuesRepositoryImpl implements IssuesRepository {
     required String projectId,
     required String issueId,
   }) async {
-    
     try {
       await remote.deleteIssue(
         projectId: projectId,
@@ -110,8 +108,7 @@ class IssuesRepositoryImpl implements IssuesRepository {
     }
   }
 
-
-   @override
+  @override
   Future<List<IssueCommentEntity>> getIssueComments({
     required String projectId,
     required String issueId,
@@ -141,6 +138,47 @@ class IssuesRepositoryImpl implements IssuesRepository {
       rethrow;
     } catch (_) {
       throw const AppException("Something went wrong while creating comment");
+    }
+  }
+
+  @override
+  Future<IssueCommentEntity> updateIssueComment({
+    required String projectId,
+    required String issueId,
+    required String commentId,
+    required String body,
+  }) async {
+    try {
+      return await remote.updateIssueComment(
+        projectId: projectId,
+        issueId: issueId,
+        commentId: commentId,
+        body: body,
+      );
+    } on AppException {
+      rethrow;
+    } catch (_) {
+      throw const AppException("Something went wrong while editing comment");
+    }
+  }
+
+
+  @override
+  Future<void> deleteIssueComment({
+    required String projectId,
+    required String issueId,
+    required String commentId,
+  }) async {
+    try {
+      await remote.deleteIssueComment(
+        projectId: projectId,
+        issueId: issueId,
+        commentId: commentId,
+      );
+    } on AppException {
+      rethrow;
+    } catch (_) {
+      throw const AppException("Something went wrong while deleting comment");
     }
   }
 }

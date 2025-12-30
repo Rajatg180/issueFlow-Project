@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime , timezone
+from datetime import datetime, timezone
 from uuid import UUID
 
 from sqlmodel import Session, select
@@ -38,6 +38,21 @@ def _ensure_issue_in_project(db: Session, project_id: UUID, issue_id: UUID) -> N
         raise ValueError("Issue not found")
 
 
+def _ensure_comment_in_issue(
+    db: Session, project_id: UUID, issue_id: UUID, comment_id: UUID
+) -> IssueComment:
+    c = db.exec(
+        select(IssueComment).where(
+            IssueComment.id == comment_id,
+            IssueComment.project_id == project_id,
+            IssueComment.issue_id == issue_id,
+        )
+    ).first()
+    if not c:
+        raise ValueError("Comment not found")
+    return c
+
+
 # get all comments for an issue
 def list_comments(db: Session, project_id: UUID, issue_id: UUID, user: User) -> list[IssueComment]:
     _ensure_project_access(db, project_id, user)
@@ -60,7 +75,7 @@ def create_comment(db: Session, project_id: UUID, issue_id: UUID, user: User, bo
     if not text:
         raise ValueError("Comment body cannot be empty")
 
-    now = datetime.now(timezone.utc)  
+    now = datetime.now(timezone.utc)
 
     c = IssueComment(
         project_id=project_id,
@@ -76,3 +91,56 @@ def create_comment(db: Session, project_id: UUID, issue_id: UUID, user: User, bo
     db.commit()
     db.refresh(c)
     return c
+
+
+# edit comment
+def edit_comment(
+    db: Session,
+    project_id: UUID,
+    issue_id: UUID,
+    comment_id: UUID,
+    user: User,
+    body: str,
+) -> IssueComment:
+    _ensure_project_access(db, project_id, user)
+    _ensure_issue_in_project(db, project_id, issue_id)
+
+    c = _ensure_comment_in_issue(db, project_id, issue_id, comment_id)
+
+    # author-only edit
+    if str(c.author_id) != str(user.id):
+        raise ValueError("You are not allowed to edit this comment")
+
+    text = (body or "").strip()
+    if not text:
+        raise ValueError("Comment body cannot be empty")
+
+    c.body = text
+    c.edited = True
+    c.updated_at = datetime.now(timezone.utc)
+
+    db.add(c)
+    db.commit()
+    db.refresh(c)
+    return c
+
+
+#  delete comment
+def delete_comment(
+    db: Session,
+    project_id: UUID,
+    issue_id: UUID,
+    comment_id: UUID,
+    user: User,
+) -> None:
+    _ensure_project_access(db, project_id, user)
+    _ensure_issue_in_project(db, project_id, issue_id)
+
+    c = _ensure_comment_in_issue(db, project_id, issue_id, comment_id)
+
+    # author-only delete
+    if str(c.author_id) != str(user.id):
+        raise ValueError("You are not allowed to delete this comment")
+
+    db.delete(c)
+    db.commit()

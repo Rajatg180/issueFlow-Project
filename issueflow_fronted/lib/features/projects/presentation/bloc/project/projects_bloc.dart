@@ -15,7 +15,6 @@ class ProjectsBloc extends Bloc<ProjectsEvent, ProjectsState> {
   final DeleteProjectUseCase deleteProjectUseCase;
   final UpdateProjectPreferenceUseCase updateProjectPreferenceUseCase;
 
-  // ✅ NEW
   final UpdateProjectUseCase updateProjectUseCase;
 
   ProjectsBloc({
@@ -30,8 +29,6 @@ class ProjectsBloc extends Bloc<ProjectsEvent, ProjectsState> {
     on<ProjectsDeleteRequested>(_onDelete);
     on<ProjectsFavoriteToggled>(_onToggleFavorite);
     on<ProjectsPinnedToggled>(_onTogglePinned);
-
-    // ✅ NEW
     on<ProjectsEditRequested>(_onEdit);
   }
 
@@ -109,7 +106,6 @@ class ProjectsBloc extends Bloc<ProjectsEvent, ProjectsState> {
     }
   }
 
-  // ✅ NEW: edit project
   Future<void> _onEdit(ProjectsEditRequested event, Emitter<ProjectsState> emit) async {
     emit(state.copyWith(editingId: event.projectId, error: null));
     try {

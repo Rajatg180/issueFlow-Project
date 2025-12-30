@@ -7,8 +7,13 @@ from uuid import UUID
 from app.core.deps import get_current_user
 from app.db.session import get_db
 from app.models.user import User
-from app.schemas.comment import CommentCreateRequest, CommentResponse
-from app.services.comment_service import list_comments, create_comment
+from app.schemas.comment import CommentCreateRequest, CommentUpdateRequest, CommentResponse
+from app.services.comment_service import (
+    list_comments,
+    create_comment,
+    edit_comment,
+    delete_comment,
+)
 
 router = APIRouter(tags=["Comments"])
 
@@ -62,5 +67,64 @@ def post_issue_comment(
             created_at=c.created_at,
             updated_at=c.updated_at,
         )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+#  edit comment
+@router.patch(
+    "/projects/{project_id}/issues/{issue_id}/comments/{comment_id}",
+    response_model=CommentResponse,
+)
+def patch_issue_comment(
+    project_id: UUID,
+    issue_id: UUID,
+    comment_id: UUID,
+    payload: CommentUpdateRequest,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    try:
+        c = edit_comment(
+            db=db,
+            project_id=project_id,
+            issue_id=issue_id,
+            comment_id=comment_id,
+            user=user,
+            body=payload.body,
+        )
+        return CommentResponse(
+            id=str(c.id),
+            project_id=str(c.project_id),
+            issue_id=str(c.issue_id),
+            author_id=str(c.author_id),
+            author_username=c.author_username,
+            body=c.body,
+            edited=c.edited,
+            created_at=c.created_at,
+            updated_at=c.updated_at,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+#  delete comment
+@router.delete("/projects/{project_id}/issues/{issue_id}/comments/{comment_id}")
+def delete_issue_comment(
+    project_id: UUID,
+    issue_id: UUID,
+    comment_id: UUID,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    try:
+        delete_comment(
+            db=db,
+            project_id=project_id,
+            issue_id=issue_id,
+            comment_id=comment_id,
+            user=user,
+        )
+        return {"ok": True}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
