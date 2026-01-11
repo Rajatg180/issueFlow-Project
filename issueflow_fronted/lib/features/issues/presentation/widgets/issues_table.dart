@@ -864,6 +864,7 @@ class _IssuesTableState extends State<IssuesTable> {
         );
       },
     ).whenComplete(() {
+      context.read<CommentsBloc>().add(const CommentsCloseRequested());
       if (mounted) {
         setState(() {
           _activeCommentsIssueId = null;
@@ -932,6 +933,7 @@ class _IssuesTableState extends State<IssuesTable> {
         );
       },
     ).then((_) {
+      context.read<CommentsBloc>().add(const CommentsCloseRequested());
       if (mounted) {
         setState(() {
           _activeCommentsIssueId = null;

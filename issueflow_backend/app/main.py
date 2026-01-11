@@ -10,7 +10,7 @@ from app.api.routes.invites import router as invites_router
 from app.api.routes.users import router as users_router
 from app.api.routes.comments import router as comments_router
 from app.api.routes.dashboard import router as dashboard_router
-
+from app.api.routes.comments_ws import router as comments_ws_router
 app = FastAPI(title="IssueFlow API")
 
 app = FastAPI(title="IssueFlow API")
@@ -44,6 +44,7 @@ app.include_router(invites_router)
 app.include_router(users_router)  
 app.include_router(comments_router)
 app.include_router(dashboard_router)
+app.include_router(comments_ws_router)
 
 @app.get("/health")
 def health():

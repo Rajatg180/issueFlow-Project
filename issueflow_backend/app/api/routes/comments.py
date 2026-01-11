@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session
 from uuid import UUID
 
+from app.websockets.comments_hub import broadcast_to_issue_from_http
 from app.core.deps import get_current_user
 from app.db.session import get_db
 from app.models.user import User
@@ -16,6 +17,23 @@ from app.services.comment_service import (
 )
 
 router = APIRouter(tags=["Comments"])
+
+
+def _comment_event_dict(c) -> dict:
+    """
+    Dict payload for WS events (JSON-serializable).
+    """
+    return {
+        "id": str(c.id),
+        "project_id": str(c.project_id),
+        "issue_id": str(c.issue_id),
+        "author_id": str(c.author_id),
+        "author_username": c.author_username,
+        "body": c.body,
+        "edited": c.edited,
+        "created_at": c.created_at.isoformat(),
+        "updated_at": c.updated_at.isoformat(),
+    }
 
 
 @router.get("/projects/{project_id}/issues/{issue_id}/comments", response_model=list[CommentResponse])
@@ -56,6 +74,23 @@ def post_issue_comment(
     try:
         c = create_comment(db=db, project_id=project_id, issue_id=issue_id, user=user, body=payload.body)
 
+        # ✅ Broadcast realtime event to WS clients (but NEVER break HTTP if broadcast fails)
+        try:
+            broadcast_to_issue_from_http(
+                str(project_id),
+                str(issue_id),
+                {
+                    "type": "comment_created",
+                    "project_id": str(project_id),
+                    "issue_id": str(issue_id),
+                    "comment": _comment_event_dict(c),
+                },
+            )
+        except Exception:
+            # Do not fail HTTP response if WS broadcast fails.
+            # (Later you can add logging here.)
+            pass
+
         return CommentResponse(
             id=str(c.id),
             project_id=str(c.project_id),
@@ -71,7 +106,6 @@ def post_issue_comment(
         raise HTTPException(status_code=400, detail=str(e))
 
 
-#  edit comment
 @router.patch(
     "/projects/{project_id}/issues/{issue_id}/comments/{comment_id}",
     response_model=CommentResponse,
@@ -93,6 +127,22 @@ def patch_issue_comment(
             user=user,
             body=payload.body,
         )
+
+        # ✅ Broadcast realtime event to WS clients (but NEVER break HTTP if broadcast fails)
+        try:
+            broadcast_to_issue_from_http(
+                str(project_id),
+                str(issue_id),
+                {
+                    "type": "comment_updated",
+                    "project_id": str(project_id),
+                    "issue_id": str(issue_id),
+                    "comment": _comment_event_dict(c),
+                },
+            )
+        except Exception:
+            pass
+
         return CommentResponse(
             id=str(c.id),
             project_id=str(c.project_id),
@@ -108,7 +158,6 @@ def patch_issue_comment(
         raise HTTPException(status_code=400, detail=str(e))
 
 
-#  delete comment
 @router.delete("/projects/{project_id}/issues/{issue_id}/comments/{comment_id}")
 def delete_issue_comment(
     project_id: UUID,
@@ -125,6 +174,22 @@ def delete_issue_comment(
             comment_id=comment_id,
             user=user,
         )
+
+        # ✅ Broadcast realtime event to WS clients (but NEVER break HTTP if broadcast fails)
+        try:
+            broadcast_to_issue_from_http(
+                str(project_id),
+                str(issue_id),
+                {
+                    "type": "comment_deleted",
+                    "project_id": str(project_id),
+                    "issue_id": str(issue_id),
+                    "comment_id": str(comment_id),
+                },
+            )
+        except Exception:
+            pass
+
         return {"ok": True}
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))

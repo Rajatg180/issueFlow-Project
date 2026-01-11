@@ -8,6 +8,10 @@ class CommentsOpenRequested extends CommentsEvent {
   const CommentsOpenRequested({required this.projectId, required this.issueId});
 }
 
+class CommentsCloseRequested extends CommentsEvent {
+  const CommentsCloseRequested();
+}
+
 class CommentSendRequested extends CommentsEvent {
   final String projectId;
   final String issueId;
@@ -18,7 +22,6 @@ class CommentSendRequested extends CommentsEvent {
     required this.body,
   });
 }
-
 
 class CommentEditRequested extends CommentsEvent {
   final String projectId;
@@ -42,4 +45,9 @@ class CommentDeleteRequested extends CommentsEvent {
     required this.issueId,
     required this.commentId,
   });
+}
+
+class CommentsWsEventReceived extends CommentsEvent {
+  final Map<String, dynamic> event;
+  const CommentsWsEventReceived(this.event);
 }

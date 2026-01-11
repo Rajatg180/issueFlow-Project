@@ -1,10 +1,12 @@
 import 'package:get_it/get_it.dart';
 import 'package:http/http.dart' as http;
+
 import 'package:issueflow_fronted/features/dashboard/data/datasources/dashboard_remote_datasource.dart';
 import 'package:issueflow_fronted/features/dashboard/data/repositories/dashboard_repository_impl.dart';
 import 'package:issueflow_fronted/features/dashboard/domain/repositories/dashboard_repository.dart';
 import 'package:issueflow_fronted/features/dashboard/domain/usecases/get_dashboard_home_usecase.dart';
 import 'package:issueflow_fronted/features/dashboard/presentation/bloc/dashboard_bloc.dart';
+
 import 'package:issueflow_fronted/features/issues/domain/usecase/create_issue_comment_usecase.dart';
 import 'package:issueflow_fronted/features/issues/domain/usecase/create_issue_usecase.dart';
 import 'package:issueflow_fronted/features/issues/domain/usecase/delete_issue_comment_usecase.dart';
@@ -30,6 +32,7 @@ import 'package:issueflow_fronted/features/projects/domain/usecases/update_proje
 import 'package:issueflow_fronted/features/projects/domain/usecases/update_project_usecase.dart';
 import 'package:issueflow_fronted/features/projects/presentation/bloc/invite/invites_bloc.dart';
 import 'package:issueflow_fronted/features/projects/presentation/cubit/invite_members_cubit.dart';
+
 import '../storage/token_storage.dart';
 import '../../features/auth/data/datasources/auth_remote_datasource.dart';
 import '../../features/auth/data/datasources/firebase_auth_service.dart';
@@ -41,21 +44,28 @@ import '../../features/auth/domain/usecases/login_usecase.dart';
 import '../../features/auth/domain/usecases/logout_usecase.dart';
 import '../../features/auth/domain/usecases/register_usecase.dart';
 import '../../features/auth/presentation/bloc/auth_bloc.dart';
+
 import '../../features/onboarding/data/datasources/onboarding_remote_datasource.dart';
 import '../../features/onboarding/data/repositories/onboarding_repository_impl.dart';
 import '../../features/onboarding/domain/repositories/onboarding_repository.dart';
+
 import 'package:issueflow_fronted/features/projects/data/datasources/projects_remote_datasource.dart';
 import 'package:issueflow_fronted/features/projects/data/repositories/projects_repository_impl.dart';
 import 'package:issueflow_fronted/features/projects/domain/repositories/projects_repository.dart';
 import 'package:issueflow_fronted/features/projects/domain/usecases/create_project_usecase.dart';
 import 'package:issueflow_fronted/features/projects/domain/usecases/list_projects_usecase.dart';
 import 'package:issueflow_fronted/features/projects/presentation/bloc/project/projects_bloc.dart';
+
 import 'package:issueflow_fronted/features/issues/data/datasources/issues_remote_datasource.dart';
 import 'package:issueflow_fronted/features/issues/data/repositories/issues_repository_impl.dart';
 import 'package:issueflow_fronted/features/issues/domain/repositories/issues_repository.dart';
 import 'package:issueflow_fronted/features/issues/presentation/bloc/issues/issues_bloc.dart';
+
 import '../storage/theme_storage.dart';
 import '../theme/theme_cubit.dart';
+
+// ✅ ADD THIS IMPORT (your WS client file)
+import 'package:issueflow_fronted/features/issues/data/realtime/comments_ws_client.dart';
 
 final sl = GetIt.instance;
 
@@ -129,7 +139,6 @@ Future<void> setupServiceLocator() async {
 
   // ---------------------------
   // ONBOARDING - UseCases
-  // ✅ IMPORTANT: Explicit generic types to avoid "Lookup failed" on some builds
   // ---------------------------
   sl.registerLazySingleton<CompleteOnboardingUseCase>(
     () => CompleteOnboardingUseCase(sl<OnboardingRepository>()),
@@ -177,7 +186,6 @@ Future<void> setupServiceLocator() async {
 
   // ---------------------------
   // PROJECTS - UseCases
-  // ✅ also made explicit (safe + consistent)
   // ---------------------------
   sl.registerLazySingleton<ListProjectsUseCase>(
     () => ListProjectsUseCase(sl<ProjectsRepository>()),
@@ -217,7 +225,7 @@ Future<void> setupServiceLocator() async {
     () => InvitesRepositoryImpl(remote: sl<ProjectsRemoteDataSource>()),
   );
 
-  // UseCases (explicit)
+  // UseCases
   sl.registerLazySingleton<ListMyInvitesUseCase>(
     () => ListMyInvitesUseCase(sl<InvitesRepository>()),
   );
@@ -294,6 +302,11 @@ Future<void> setupServiceLocator() async {
     () => DeleteIssueCommentUseCase(sl<IssuesRepository>()),
   );
 
+  // ✅ WebSocket client (single instance app-wide)
+  sl.registerLazySingleton<CommentsWsClient>(
+    () => CommentsWsClient(tokenStorage: sl<TokenStorage>()),
+  );
+
   // Bloc
   sl.registerFactory<IssuesBloc>(
     () => IssuesBloc(
@@ -311,8 +324,10 @@ Future<void> setupServiceLocator() async {
       createComment: sl<CreateIssueCommentUseCase>(),
       updateComment: sl<UpdateIssueCommentUseCase>(),
       deleteComment: sl<DeleteIssueCommentUseCase>(),
+      wsClient: sl<CommentsWsClient>(), // ✅ NEW
     ),
   );
+
   // =========================================================
   // ✅ DASHBOARD FEATURE
   // =========================================================

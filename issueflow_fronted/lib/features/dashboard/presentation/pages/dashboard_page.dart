@@ -138,14 +138,9 @@ class DashboardPage extends StatelessWidget {
                                           title: 'No activity yet',
                                           subtitle: 'Once comments are added, they will show up here.',
                                         )
-                                      : Column(
-                                          children: data.recentActivity.map((a) {
-                                            return _ActivityTile(
-                                              title: '${a.issueKey} • ${a.issueTitle}',
-                                              subtitle: '${a.authorUsername}: ${a.body}\n${_timeAgo(a.createdAt)}',
-                                              icon: Icons.chat_bubble_outline,
-                                            );
-                                          }).toList(),
+                                      : _ActivityPager(
+                                          activities: data.recentActivity,
+                                          pageSize: 4,
                                         ),
                                 );
 
@@ -192,6 +187,7 @@ class DashboardPage extends StatelessWidget {
 
                                 if (isNarrow) {
                                   return Column(
+                                    crossAxisAlignment: CrossAxisAlignment.stretch,
                                     children: [
                                       left,
                                       const SizedBox(height: 12),
@@ -231,6 +227,102 @@ String _timeAgo(DateTime dt) {
   if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
   if (diff.inHours < 24) return '${diff.inHours}h ago';
   return '${diff.inDays}d ago';
+}
+
+/// ✅ Client-side pagination for Recent Activity (no backend change)
+class _ActivityPager extends StatefulWidget {
+  final List<dynamic> activities; // keep dynamic so no extra imports required
+  final int pageSize;
+
+  const _ActivityPager({
+    required this.activities,
+    this.pageSize = 4,
+  });
+
+  @override
+  State<_ActivityPager> createState() => _ActivityPagerState();
+}
+
+class _ActivityPagerState extends State<_ActivityPager> {
+  int _page = 0;
+
+  int get _totalPages {
+    final total = widget.activities.length;
+    final size = widget.pageSize;
+    final pages = (total / size).ceil();
+    return pages <= 0 ? 1 : pages;
+  }
+
+  List<dynamic> get _currentItems {
+    final start = _page * widget.pageSize;
+    final end = (start + widget.pageSize).clamp(0, widget.activities.length);
+    if (start >= widget.activities.length) return const [];
+    return widget.activities.sublist(start, end);
+  }
+
+  void _next() {
+    if (_page < _totalPages - 1) {
+      setState(() => _page++);
+    }
+  }
+
+  void _prev() {
+    if (_page > 0) {
+      setState(() => _page--);
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant _ActivityPager oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    // If list changes (refresh), ensure page stays valid
+    final maxPage = _totalPages - 1;
+    if (_page > maxPage) {
+      setState(() => _page = maxPage);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final c = context.c;
+    final t = Theme.of(context);
+
+    final items = _currentItems;
+
+    return Column(
+      children: [
+        Column(
+          children: items.map((a) {
+            return _ActivityTile(
+              title: '${a.issueKey} • ${a.issueTitle}',
+              subtitle: '${a.authorUsername}: ${a.body}\n${_timeAgo(a.createdAt)}',
+              icon: Icons.chat_bubble_outline,
+            );
+          }).toList(),
+        ),
+        const SizedBox(height: 6),
+        Row(
+          children: [
+            Text(
+              'Page ${_page + 1} of $_totalPages',
+              style: t.textTheme.bodySmall?.copyWith(color: c.textSecondary),
+            ),
+            const Spacer(),
+            OutlinedButton(
+              onPressed: _page == 0 ? null : _prev,
+              child: const Text('Prev'),
+            ),
+            const SizedBox(width: 10),
+            OutlinedButton(
+              onPressed: _page >= _totalPages - 1 ? null : _next,
+              child: const Text('Next'),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
 }
 
 /// --- small helpers ---
