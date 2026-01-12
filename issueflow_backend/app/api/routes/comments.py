@@ -4,7 +4,6 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session
 from uuid import UUID
 
-from app.websockets.comments_hub import broadcast_to_issue_from_http
 from app.core.deps import get_current_user
 from app.db.session import get_db
 from app.models.user import User
@@ -15,6 +14,9 @@ from app.services.comment_service import (
     edit_comment,
     delete_comment,
 )
+
+# ✅ Redis Pub/Sub publisher (instance-safe)
+from app.websockets.comments_hub import publish_and_broadcast
 
 router = APIRouter(tags=["Comments"])
 
@@ -36,8 +38,11 @@ def _comment_event_dict(c) -> dict:
     }
 
 
-@router.get("/projects/{project_id}/issues/{issue_id}/comments", response_model=list[CommentResponse])
-def get_issue_comments(
+@router.get(
+    "/projects/{project_id}/issues/{issue_id}/comments",
+    response_model=list[CommentResponse],
+)
+async def get_issue_comments(
     project_id: UUID,
     issue_id: UUID,
     db: Session = Depends(get_db),
@@ -63,8 +68,11 @@ def get_issue_comments(
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.post("/projects/{project_id}/issues/{issue_id}/comments", response_model=CommentResponse)
-def post_issue_comment(
+@router.post(
+    "/projects/{project_id}/issues/{issue_id}/comments",
+    response_model=CommentResponse,
+)
+async def post_issue_comment(
     project_id: UUID,
     issue_id: UUID,
     payload: CommentCreateRequest,
@@ -74,21 +82,18 @@ def post_issue_comment(
     try:
         c = create_comment(db=db, project_id=project_id, issue_id=issue_id, user=user, body=payload.body)
 
-        # ✅ Broadcast realtime event to WS clients (but NEVER break HTTP if broadcast fails)
+        # ✅ Publish to Redis (so ALL instances rebroadcast to their WS clients)
+        # ✅ Never fail HTTP if Redis publish fails
         try:
-            broadcast_to_issue_from_http(
-                str(project_id),
-                str(issue_id),
+            await publish_and_broadcast(
                 {
                     "type": "comment_created",
                     "project_id": str(project_id),
                     "issue_id": str(issue_id),
                     "comment": _comment_event_dict(c),
-                },
+                }
             )
         except Exception:
-            # Do not fail HTTP response if WS broadcast fails.
-            # (Later you can add logging here.)
             pass
 
         return CommentResponse(
@@ -110,7 +115,7 @@ def post_issue_comment(
     "/projects/{project_id}/issues/{issue_id}/comments/{comment_id}",
     response_model=CommentResponse,
 )
-def patch_issue_comment(
+async def patch_issue_comment(
     project_id: UUID,
     issue_id: UUID,
     comment_id: UUID,
@@ -128,17 +133,15 @@ def patch_issue_comment(
             body=payload.body,
         )
 
-        # ✅ Broadcast realtime event to WS clients (but NEVER break HTTP if broadcast fails)
+        # ✅ Publish update event to Redis
         try:
-            broadcast_to_issue_from_http(
-                str(project_id),
-                str(issue_id),
+            await publish_and_broadcast(
                 {
                     "type": "comment_updated",
                     "project_id": str(project_id),
                     "issue_id": str(issue_id),
                     "comment": _comment_event_dict(c),
-                },
+                }
             )
         except Exception:
             pass
@@ -159,7 +162,7 @@ def patch_issue_comment(
 
 
 @router.delete("/projects/{project_id}/issues/{issue_id}/comments/{comment_id}")
-def delete_issue_comment(
+async def delete_issue_comment(
     project_id: UUID,
     issue_id: UUID,
     comment_id: UUID,
@@ -175,17 +178,15 @@ def delete_issue_comment(
             user=user,
         )
 
-        # ✅ Broadcast realtime event to WS clients (but NEVER break HTTP if broadcast fails)
+        # ✅ Publish delete event to Redis
         try:
-            broadcast_to_issue_from_http(
-                str(project_id),
-                str(issue_id),
+            await publish_and_broadcast(
                 {
                     "type": "comment_deleted",
                     "project_id": str(project_id),
                     "issue_id": str(issue_id),
                     "comment_id": str(comment_id),
-                },
+                }
             )
         except Exception:
             pass

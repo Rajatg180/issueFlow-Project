@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     refresh_token_expire_days: int = 14
 
     firebase_service_account_file: str | None = None
+    redis_url: str | None = None
 
 
     class Config:
