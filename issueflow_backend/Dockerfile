@@ -28,4 +28,8 @@ COPY . /app
 EXPOSE 8000
 
 # 9) Run the server
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Dockerfile
+# ...
+# Replace the old CMD with this:
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+

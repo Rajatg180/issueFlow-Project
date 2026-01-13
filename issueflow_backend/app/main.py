@@ -23,17 +23,12 @@ app = FastAPI(title="IssueFlow API")
 # CORS for Flutter Web dev server
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost",
-        "http://127.0.0.1",
-        "http://localhost:8000",
-        "http://127.0.0.1:8000",
-    ],
-    allow_origin_regex=r"^http://localhost:\d+$",
-    allow_credentials=True,
+    allow_origins=["*"],   # ✅ allow all origins
+    allow_credentials=False, 
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 @app.on_event("startup")
 async def on_startup():
