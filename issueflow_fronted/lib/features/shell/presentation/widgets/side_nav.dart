@@ -16,12 +16,12 @@ class SideNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // ✅ Tablet: compact NavigationRail (icons only)
+    //  Tablet: compact NavigationRail (icons only)
     if (!extended) {
       return _CompactRail(onItemSelected: onItemSelected);
     }
 
-    // ✅ Desktop/Mobile Drawer: full sidebar with Pinned/Favorites/All Tabs
+    // Desktop/Mobile Drawer: full sidebar with Pinned/Favorites/All Tabs
     return _FullSidebar(onItemSelected: onItemSelected);
   }
 }

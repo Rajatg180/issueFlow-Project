@@ -1,6 +1,7 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:issueflow_fronted/core/network/backend_wrmup.dart';
 import 'core/di/service_locator.dart';
 import 'core/routing/app_gate.dart';
 import 'core/theme/app_theme.dart';
@@ -16,12 +17,17 @@ import 'package:issueflow_fronted/features/projects/presentation/cubit/invite_me
 import 'package:issueflow_fronted/features/projects/presentation/bloc/project/projects_bloc.dart';
 import 'package:issueflow_fronted/features/issues/presentation/bloc/issues/issues_bloc.dart';
 import 'firebase_options.dart';
+import 'dart:async';
+
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await setupServiceLocator();
+
+  // Warm up backend connection do start the backend early
+  unawaited(BackendWarmup.ping());
 
   runApp(const IssueFlowApp());
 }
@@ -50,9 +56,9 @@ class IssueFlowApp extends StatelessWidget {
         builder: (context, mode) {
           return MaterialApp(
             debugShowCheckedModeBanner: false,
-            theme: AppTheme.light(), // ✅ light
-            darkTheme: AppTheme.dark(), // ✅ dark
-            themeMode: mode, // ✅ IMPORTANT: use cubit value
+            theme: AppTheme.light(),
+            darkTheme: AppTheme.dark(), 
+            themeMode: mode, 
             home: const AppGate(),
           );
         },
